@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>레이저 견적 도우미 — 효주기업</title>
+<style>
+  :root{
+    --navy:#1e3a5f; --navy-l:#eef3f9; --ink:#2b3440; --sub:#7a8694;
+    --line:#e3e8ee; --accent:#2e5c8a; --warn:#b54708; --warn-bg:#fff6ec; --ok:#0f7b4d; --ok-bg:#eefaf3; --bg:#fff;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Malgun Gothic','맑은 고딕',-apple-system,sans-serif; background:var(--bg); color:var(--ink); line-height:1.55;}
+  .wrap{max-width:920px; margin:0 auto; padding:28px 18px 60px;}
+  header.app{border-bottom:3px solid var(--navy); padding-bottom:16px; margin-bottom:24px;}
+  header.app .eyebrow{font-size:12px; letter-spacing:.18em; color:var(--sub); margin-bottom:6px;}
+  header.app h1{font-size:24px; color:var(--navy); font-weight:800;}
+  header.app p{font-size:13px; color:var(--sub); margin-top:4px;}
+  .panel{border:1px solid var(--line); border-radius:10px; padding:18px; margin-bottom:18px; background:#fff;}
+  .panel h2{font-size:14px; color:var(--navy); margin-bottom:12px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .panel h2 .tag{font-size:11px; background:var(--navy); color:#fff; border-radius:4px; padding:2px 7px; font-weight:600;}
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px;}
+  label{display:block; font-size:12px; color:var(--sub); margin-bottom:4px;}
+  select,input[type=text],input[type=date],textarea{width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:7px; font-size:14px; font-family:inherit; background:#fff; color:var(--ink);}
+  select:focus,input:focus,textarea:focus{outline:2px solid var(--accent); outline-offset:1px; border-color:var(--accent);}
+  input.num{text-align:right;}
+  input:disabled{background:#f4f6f9; color:var(--sub);}
+  .check{display:flex; align-items:center; gap:7px; font-size:13px; padding-top:22px;}
+  .check input{width:16px; height:16px; accent-color:var(--navy);}
+  .btn{display:inline-flex; align-items:center; gap:6px; border:none; border-radius:8px; padding:10px 16px; font-size:14px; font-weight:700; font-family:inherit; cursor:pointer;}
+  .btn-primary{background:var(--navy); color:#fff;}
+  .btn-primary:hover{background:#162c49;}
+  .btn-ghost{background:var(--navy-l); color:var(--navy);}
+  .btn-ghost:hover{background:#dde8f4;}
+  .btn:disabled{opacity:.45; cursor:not-allowed;}
+  .btn-sm{padding:5px 10px; font-size:12px; border-radius:6px;}
+  .btn-del{background:#fdeeee; color:#b42318;}
+  .result-band{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-top:14px;}
+  .stat{background:var(--navy-l); border-radius:8px; padding:12px 14px;}
+  .stat .k{font-size:11px; color:var(--sub);}
+  .stat .v{font-size:19px; font-weight:800; color:var(--navy); font-variant-numeric:tabular-nums;}
+  .stat .s{font-size:11px; color:var(--sub); margin-top:2px;}
+  .stat.hero{background:var(--navy);}
+  .stat.hero .k,.stat.hero .s{color:#bcd0e6;}
+  .stat.hero .v{color:#fff; font-size:22px;}
+  .stat.good{background:var(--ok-bg);}
+  .stat.good .v{color:var(--ok);}
+  .note{font-size:12px; color:var(--warn); background:var(--warn-bg); border-radius:7px; padding:9px 12px; margin-top:12px; display:none;}
+  .note.show{display:block;}
+  .actions{margin-top:14px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+  table.ui{width:100%; border-collapse:collapse; font-size:13px; margin-top:8px;}
+  table.ui th{background:var(--navy); color:#fff; padding:8px 10px; text-align:left; font-weight:600; font-size:12px; white-space:nowrap;}
+  table.ui td{padding:7px 10px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums;}
+  table.ui td.num{text-align:right; white-space:nowrap;}
+  table.ui tr:nth-child(even) td{background:#f8fafc;}
+  table.ui td input{padding:5px 8px; font-size:13px; border-radius:5px;}
+  .pill{display:inline-block; font-size:10px; padding:1px 7px; border-radius:9px; font-weight:700; white-space:nowrap;}
+  .pill.n{background:var(--navy-l); color:var(--navy);}
+  .pill.o{background:#f1f1f4; color:var(--sub);}
+  .empty{padding:26px; text-align:center; color:var(--sub); font-size:13px;}
+  .cnt{font-size:12px; color:var(--sub); font-weight:400;}
+  .scroll{max-height:300px; overflow:auto; border:1px solid var(--line); border-radius:8px;}
+  .scroll table{margin-top:0;}
+  .scroll th{position:sticky; top:0; z-index:1;}
+  .rules{font-size:13px;}
+  .rules li{margin:6px 0 6px 18px;}
+  .rules b{color:var(--navy);}
+  footer.app{font-size:11px; color:var(--sub); margin-top:24px; text-align:center;}
+  .sheet-outer{border:1px solid var(--line); border-radius:10px; padding:14px; background:#f4f6f9; overflow-x:auto;}
+  .seg{display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden;}
+  .seg button{border:none; background:#fff; padding:7px 14px; font-size:13px; font-weight:700; font-family:inherit; color:var(--sub); cursor:pointer;}
+  .seg button.on{background:var(--navy); color:#fff;}
+
+  /* ============ 見積書 ============ */
+  #sheet{width:760px; margin:0 auto; background:#fff; padding:46px 40px 40px; font-family:'Malgun Gothic','맑은 고딕','Dotum',sans-serif; color:#000;}
+  #sheet .qtitle{text-align:center; font-size:34px; font-weight:800; letter-spacing:.45em; margin-bottom:34px; text-indent:.45em;}
+  #sheet .head{display:flex; gap:16px; margin-bottom:18px;}
+  #sheet .hbox{flex:1; border:2px solid #000;}
+  #sheet .hbox table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  #sheet .hbox td{border:1px solid #000; padding:5px 7px; height:27px;}
+  #sheet .hbox .ttl{text-align:center; font-size:15px; font-weight:800; letter-spacing:.25em; height:32px;}
+  #sheet .hbox .lab{width:74px; text-align:center; white-space:nowrap;}
+  #sheet .hbox .ctr{text-align:center;}
+  #sheet .seal{position:relative;}
+  #sheet .seal .circ{position:absolute; right:8px; top:50%; transform:translateY(-50%); width:30px; height:30px; border:1.5px solid #d33; border-radius:50%; color:#d33; font-size:9px; display:flex; align-items:center; justify-content:center; opacity:.75;}
+  #sheet .pname{display:flex; border:2px solid #000; background:#ffff00; font-size:13px; font-weight:700; margin-bottom:14px;}
+  #sheet .pname>div{padding:7px 9px; border-right:1px solid #000; display:flex; align-items:center;}
+  #sheet .pname .l{width:70px; justify-content:center;}
+  #sheet .pname .v1{flex:1.4; justify-content:center; font-size:12px;}
+  #sheet .pname .l2{width:76px; justify-content:center;}
+  #sheet .pname .v2{flex:.8;}
+  #sheet .pname .l3{width:76px; justify-content:center;}
+  #sheet .pname .v3{flex:1; justify-content:flex-end; border-right:none; font-size:16px; font-weight:800;}
+  #sheet table.items{width:100%; border-collapse:collapse; font-size:12.5px; border:2px solid #000;}
+  #sheet table.items th{border:1px solid #000; padding:6px; font-weight:700; text-align:center;}
+  #sheet table.items .band{letter-spacing:.6em; text-indent:.6em; font-size:13px;}
+  #sheet table.items td{border:1px solid #000; padding:5px 8px; height:26px;}
+  #sheet table.items td.c{text-align:center;}
+  #sheet table.items td.r{text-align:right;}
+  #sheet .sums{width:100%; border-collapse:collapse; font-size:12.5px; border:2px solid #000; border-top:none;}
+  #sheet .sums td{border:1px solid #000; padding:5px 10px; height:25px;}
+  #sheet .sums td.r{text-align:right; width:150px; font-weight:700;}
+  #sheet .ref{border:2px solid #000; border-top:none; font-size:12.5px; padding:8px 10px 26px; white-space:pre-line; min-height:80px;}
+
+  /* ============ 거래명세표 ============ */
+  #dsheet{width:1040px; margin:0 auto; background:#fff; padding:24px 26px; font-family:'Malgun Gothic','맑은 고딕','Dotum',sans-serif; color:#000; display:flex; gap:30px;}
+  #dsheet .copy{flex:1; min-width:0;}
+  #dsheet .dtitle{border:2px solid #000; text-align:center; font-size:16px; font-weight:800; padding:6px 0;}
+  #dsheet .dtitle .sub{font-size:12px; font-weight:700;}
+  #dsheet .dmeta{padding:12px 4px 0;}
+  #dsheet .ddate{font-size:13px; font-weight:700; margin:8px 0 10px 14px;}
+  #dsheet .dto{font-size:13px; font-weight:700; margin-left:8px; margin-bottom:14px;}
+  #dsheet .dto .nm{display:inline-block; min-width:120px; border-bottom:1.5px solid #000; padding:0 6px 2px;}
+  #dsheet .dto .gh{font-size:12px; font-weight:400; margin-left:10px;}
+  #dsheet .dcalc{font-size:11.5px; margin-bottom:2px;}
+  #dsheet table.dt{width:100%; border-collapse:collapse; font-size:11.5px;}
+  #dsheet table.dt td,#dsheet table.dt th{border:1px solid #000; padding:3px 5px; height:21px;}
+  #dsheet .ysum td{background:#ffffcc; font-weight:700; font-size:12px;}
+  #dsheet .yhead th{background:#ffffcc; font-weight:700; text-align:center;}
+  #dsheet td.c{text-align:center;}
+  #dsheet td.r{text-align:right;}
+  #dsheet .dsum td{font-weight:700;}
+  #dsheet .dbank{text-align:center; font-size:12px; font-weight:700; padding-top:8px;}
+
+  @media print{
+    body *{visibility:hidden;}
+    body.print-quote #sheet, body.print-quote #sheet *{visibility:visible;}
+    body.print-ds #dsheet, body.print-ds #dsheet *{visibility:visible;}
+    .sheet-outer{border:none; padding:0; background:#fff; overflow:visible;}
+    body.print-quote #sheet{position:absolute; left:0; top:0; width:100%; padding:0; margin:0;}
+    body.print-ds #dsheet{position:absolute; left:0; top:0; width:100%; padding:0; margin:0; gap:8mm;}
+    #sheet .pname, #sheet table.items th, #dsheet .ysum td, #dsheet .yhead th{-webkit-print-color-adjust:exact; print-color-adjust:exact;}
+  }
+  @media (max-width:520px){ header.app h1{font-size:20px;} .stat .v{font-size:17px;} }
+
+  /* ============ DXF 자동견적 ============ */
+  #dxfDrop{border:2px dashed var(--accent); border-radius:10px; padding:26px; text-align:center; color:var(--accent); background:var(--navy-l); cursor:pointer; font-size:14px; font-weight:700;}
+  #dxfDrop.drag{background:#dde8f4; border-color:var(--navy);}
+  #dxfDrop.has{padding:12px; font-size:12px;}
+  .dxf-cols{display:grid; grid-template-columns:280px 1fr; gap:16px; margin-top:14px;}
+  @media(max-width:680px){ .dxf-cols{grid-template-columns:1fr;} }
+  #dxfPreview{border:1px solid var(--line); border-radius:8px; background:#fff; width:100%; height:240px; display:block;}
+  .dxf-metrics{display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:9px;}
+  .metric{background:var(--navy-l); border-radius:8px; padding:7px 9px;}
+  .metric label{font-size:11px; margin-bottom:3px;}
+  .metric input{padding:6px 8px; font-size:13px;}
+  .dxf-foldbar{margin-top:12px; border-top:1px solid var(--line);}
+  .fold-h{cursor:pointer; font-size:13px; font-weight:700; color:var(--navy); padding:9px 2px; user-select:none;}
+  .fold-b{display:none; padding:2px 2px 10px;}
+  .fold-b.open{display:block;}
+  .layerlist{max-height:160px; overflow:auto; border:1px solid var(--line); border-radius:8px; padding:8px; font-size:12px;}
+  .layerlist label{display:flex; align-items:center; gap:6px; margin:3px 0; color:var(--ink); padding-top:0;}
+  .layerlist input{width:15px; height:15px;}
+  table.cost-break{font-size:13px; border-collapse:collapse; width:100%;}
+  table.cost-break td{padding:5px 9px; border-bottom:1px solid var(--line);}
+  table.cost-break td.r{text-align:right; font-variant-numeric:tabular-nums;}
+  table.cost-break td.sub{color:var(--sub); font-size:11.5px;}
+  table.cost-break tr.tot td{font-weight:800; color:var(--navy); border-top:2px solid var(--navy); border-bottom:none; font-size:16px;}
+  table.rate-tbl,table.cal-tbl{width:100%; border-collapse:collapse; font-size:12px; margin-top:4px;}
+  table.rate-tbl th,table.cal-tbl th{background:var(--navy); color:#fff; padding:5px 7px; font-size:11px; white-space:nowrap;}
+  table.rate-tbl td,table.cal-tbl td{border:1px solid var(--line); padding:3px 5px; text-align:right;}
+  table.rate-tbl td:first-child,table.cal-tbl td.l{text-align:left; font-weight:600;}
+  table.rate-tbl input,table.cal-tbl input{padding:4px 6px; font-size:12px; border-radius:5px; text-align:right;}
+  .mape{font-size:13px; font-weight:700; color:var(--ok);}
+  .mape.bad{color:var(--warn);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="app">
+    <div class="eyebrow">HYOJU LASER · QUOTE ASSISTANT</div>
+    <h1>레이저 견적 도우미</h1>
+    <p>재질·수량·자재 조건만 넣으면 이력 기반 추천 단가가 나옵니다 — 결정 후 견적서·거래명세표 PDF까지.</p>
+  </header>
+
+  <div class="panel">
+    <h2><span class="tag">1</span>견적 입력</h2>
+    <div class="grid">
+      <div><label for="fam">재질군</label><select id="fam"></select></div>
+      <div><label for="thk">두께 (T)</label><select id="thk"></select></div>
+      <div><label for="qtyin">수량</label><input type="text" id="qtyin" class="num" inputmode="numeric" value="1"></div>
+      <div class="check"><input type="checkbox" id="sagup"><label for="sagup" style="margin:0; font-size:13px;">자재 사급 (가공비만)</label></div>
+      <div><label for="jcin">자재비 / 1개 (원)</label><input type="text" id="jcin" class="num" inputmode="numeric" placeholder="알면 입력 (정확도↑)"></div>
+      <div><label for="ven">업체 (선택 — 이력 좁히기)</label><select id="ven"></select></div>
+      <div style="grid-column:span 2;"><label for="specin">규격 표기 — 견적서에 그대로 인쇄 (자동 생성, 수정 가능)</label><input type="text" id="specin" placeholder="예: SS5T (10EA)"></div>
+    </div>
+    <div class="result-band" id="calcBand"></div>
+    <div class="note" id="calcNote"></div>
+    <div class="actions">
+      <button class="btn btn-primary" id="decideBtn">✓ 견적 결정 — 견적서에 추가</button>
+      <span class="cnt">단가를 직접 알고 있으면 추가 후 견적서 표에서 바로 수정하세요.</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="tag">D</span>DXF·GEO 자동견적 <span class="cnt">— 도면(DXF) 또는 TruTops GEO를 끌어다 놓으면 절단길이·구멍·크기로 단가를 추정합니다 (베타)</span></h2>
+    <div id="dxfDrop">📐 여기로 <b>DXF·GEO 파일</b>을 끌어다 놓거나 클릭해 선택<input type="file" id="dxfFile" accept=".dxf,.geo,application/dxf,image/vnd.dxf" style="display:none;"></div>
+    <div id="dxfMain" style="display:none;">
+      <div class="dxf-cols">
+        <div>
+          <svg id="dxfPreview" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"></svg>
+          <div class="cnt" id="dxfFileName" style="margin-top:6px;"></div>
+        </div>
+        <div>
+          <div class="dxf-metrics">
+            <div class="metric"><label>총 절단길이 (mm)</label><input type="text" id="mCut" class="num"></div>
+            <div class="metric"><label>구멍·피어싱 수</label><input type="text" id="mPierce" class="num"></div>
+            <div class="metric"><label>가로 W (mm)</label><input type="text" id="mW" class="num"></div>
+            <div class="metric"><label>세로 H (mm)</label><input type="text" id="mH" class="num"></div>
+            <div class="metric"><label>절곡 수</label><input type="text" id="mBend" class="num" value="0"></div>
+            <div class="metric"><label>수량</label><input type="text" id="mQty" class="num" value="1"></div>
+          </div>
+          <div class="grid" style="margin-top:10px;">
+            <div><label for="dxfMat">재질</label><select id="dxfMat"></select></div>
+            <div><label for="dxfThk">두께 (T)</label><input type="text" id="dxfThk" class="num" placeholder="예: 2.0"></div>
+            <div><label for="dxfVen">업체 (보정계수)</label><select id="dxfVen"></select></div>
+            <div><label for="dxfWeld">용접·후처리 가산 (원/개)</label><input type="text" id="dxfWeld" class="num" value="0"></div>
+          </div>
+        </div>
+      </div>
+      <table class="cost-break" id="dxfBreak" style="margin-top:14px;"></table>
+      <div class="actions">
+        <button class="btn btn-primary" id="dxfApply">↑ 이 추정을 위 견적 입력에 채우기</button>
+        <button class="btn btn-ghost btn-sm" id="dxfAddDraft">+ 견적서에 바로 추가</button>
+        <span class="cnt">추정은 참고용입니다 — 형상이 잘못 읽혔으면 위 숫자를 직접 고치세요.</span>
+      </div>
+
+      <div class="dxf-foldbar">
+        <div class="fold-h" data-fold="foldLayer">▸ 레이어 / 절곡선 매핑</div>
+        <div class="fold-b" id="foldLayer">
+          <div class="layerlist" id="dxfLayers"></div>
+          <p class="cnt" style="margin-top:6px;">절곡선이 들어있는 레이어를 체크하면 그 레이어의 선 개수를 절곡 수로 셉니다.</p>
+        </div>
+      </div>
+      <div class="dxf-foldbar">
+        <div class="fold-h" data-fold="foldRate">▸ 단가 설정 (재질별 / 두께별)</div>
+        <div class="fold-b" id="foldRate">
+          <div id="dxfRateBox"></div>
+          <div class="actions"><button class="btn btn-ghost btn-sm" id="dxfRateSave">💾 단가 저장</button><button class="btn btn-ghost btn-sm" id="dxfRateReset">기본값 복원</button></div>
+        </div>
+      </div>
+      <div class="dxf-foldbar">
+        <div class="fold-h" data-fold="foldCal">▸ 캘리브레이션 (실제 견적가로 보정)</div>
+        <div class="fold-b" id="foldCal">
+          <div class="actions">
+            <label style="margin:0;">이 도면의 실제 견적 <b>단가(원/개)</b></label>
+            <input type="text" id="calActual" class="num" style="max-width:150px;" placeholder="실제 단가">
+            <button class="btn btn-ghost btn-sm" id="calAdd">+ 현재 도면을 샘플로 추가</button>
+          </div>
+          <table class="cal-tbl" id="calTbl" style="margin-top:8px;"></table>
+          <div class="actions">
+            <button class="btn btn-primary btn-sm" id="calRun">보정 실행</button>
+            <span class="mape" id="calMape"></span>
+          </div>
+          <p class="cnt">샘플마다 재질·두께·업체·실제단가가 필요합니다. 보정은 전역 배수 + 업체별 계수를 맞춥니다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="tag">2</span>선택 조건의 견적 이력 <span class="cnt" id="histCnt"></span></h2>
+    <div class="scroll">
+      <table class="ui">
+        <thead><tr><th>견적일</th><th>업체</th><th>규격 (원문)</th><th style="text-align:right">자재</th><th style="text-align:right">가공</th><th style="text-align:right">단가</th><th style="text-align:right">수량</th><th style="text-align:right">합계</th></tr></thead>
+        <tbody id="histBody"></tbody>
+      </table>
+    </div>
+    <p class="cnt" style="margin-top:6px;">행을 클릭하면 그 단가·수량이 위 입력에 채워집니다. 자재/가공 칸은 단가 분해가 기록된 경우만 표시됩니다.</p>
+  </div>
+
+  <div class="panel">
+    <h2><span class="tag">3</span>견적서 작성 <span class="cnt" id="draftCnt"></span>
+      <span style="margin-left:auto;" class="seg"><button id="formNew" class="on">신형 (단가·수량)</button><button id="formOld">구형 (재질·가공비)</button></span>
+    </h2>
+    <div class="grid" style="margin-bottom:10px;">
+      <div><label for="qVendor">업체명</label><input type="text" id="qVendor" list="venList" placeholder="예: 대광테크"><datalist id="venList"></datalist></div>
+      <div><label for="qPerson">담당자</label><input type="text" id="qPerson" placeholder="없으면 비움"></div>
+      <div><label for="qDate">견적일</label><input type="date" id="qDate"></div>
+      <div><label for="qPum">품명</label><input type="text" id="qPum" placeholder="예: 레이저 / 커버 외"></div>
+    </div>
+    <table class="ui">
+      <thead><tr><th style="width:30px">NO</th><th>규격 (공정명)</th><th style="text-align:right">단가</th><th style="text-align:right; width:74px">수량</th><th style="text-align:right">합계</th><th style="width:86px">자재 사급</th><th>비고</th><th style="width:50px"></th></tr></thead>
+      <tbody id="draftBody"></tbody>
+    </table>
+    <div class="actions">
+      <button class="btn btn-ghost btn-sm" id="addRowBtn">+ 빈 행 추가</button>
+      <button class="btn btn-ghost btn-sm" id="clearBtn">전체 비우기</button>
+      <span class="cnt">사급 체크 시 자재/가공 분해가 있으면 가공비 단가로 자동 전환됩니다.</span>
+    </div>
+    <div style="margin-top:12px;"><label for="qRef">참고 문구</label>
+      <textarea id="qRef" rows="2">1) 부가세 별도</textarea></div>
+    <div class="actions">
+      <button class="btn btn-primary" id="pdfBtn">⬇ 견적서 PDF 다운로드</button>
+      <button class="btn btn-ghost btn-sm" id="saveQuoteBtn">💾 이 견적 저장</button>
+      <button class="btn btn-ghost btn-sm" id="exportBtn">⬆ 저장견적 내보내기(JSON)</button>
+      <button class="btn btn-ghost btn-sm" id="importBtn">⬇ 가져오기(JSON)</button>
+      <input type="file" id="importFile" accept="application/json,.json" style="display:none;">
+    </div>
+    <div id="savedWrap" style="margin-top:12px; display:none;">
+      <label style="display:block; margin-bottom:6px;">저장된 견적 <span class="cnt" id="savedCnt"></span></label>
+      <table class="ui"><thead><tr><th style="width:90px">저장일</th><th>업체</th><th>품명</th><th style="text-align:right; width:90px">합계</th><th style="width:60px">불러오기</th><th style="width:50px"></th></tr></thead>
+        <tbody id="savedBody"></tbody></table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="tag">4</span>견적서 미리보기</h2>
+    <div class="sheet-outer">
+      <div id="sheet">
+        <div class="qtitle">見 積 書</div>
+        <div class="head">
+          <div class="hbox">
+            <table>
+              <tr><td colspan="2" class="ttl" id="sVendor"></td></tr>
+              <tr><td class="lab">담 당</td><td class="ctr" id="sPerson"></td></tr>
+              <tr><td class="lab">DATE</td><td class="ctr" id="sDate"></td></tr>
+              <tr><td class="lab">견적유효일</td><td class="ctr">견적일부터 30일</td></tr>
+              <tr><td class="lab">납 기</td><td class="ctr">발주일부터 15일</td></tr>
+              <tr><td colspan="2" class="ctr" style="height:32px;">아래와 같이 견적 합니다.</td></tr>
+            </table>
+          </div>
+          <div class="hbox">
+            <table>
+              <tr><td colspan="2" class="ttl">효 주 기 업</td></tr>
+              <tr><td colspan="2" class="ctr">609-13-13850</td></tr>
+              <tr><td colspan="2" class="ctr">경남 창원시 의창구 차상로 30번길 16</td></tr>
+              <tr><td class="ctr">제 조</td><td class="ctr">기계부품</td></tr>
+              <tr><td class="ctr">T.055-237-9853</td><td class="ctr">F.055-237-9854</td></tr>
+              <tr><td colspan="2" class="ctr seal" style="height:32px; font-weight:700; letter-spacing:.5em;">남 기 봉<span class="circ">인</span></td></tr>
+            </table>
+          </div>
+        </div>
+        <div class="pname">
+          <div class="l">품 명</div><div class="v1" id="sPum"></div>
+          <div class="l2">PART NO</div><div class="v2"></div>
+          <div class="l3">견적금액</div><div class="v3" id="sTotal"></div>
+        </div>
+        <div id="sTableArea"></div>
+        <div class="ref" id="sRef"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="tag">5</span>거래명세표 작성 <span class="cnt" id="dsCnt"></span></h2>
+    <div class="grid" style="margin-bottom:10px;">
+      <div><label for="dVendor">업체명 (자유 변경)</label><input type="text" id="dVendor" list="venList" placeholder="예: 대한시스텍"></div>
+      <div><label for="dDate">거래일</label><input type="date" id="dDate"></div>
+      <div><label for="dBank">입금계좌</label><input type="text" id="dBank" value="기업은행(남기봉) 010.4843.0243"></div>
+    </div>
+    <table class="ui">
+      <thead><tr><th style="width:34px">NO</th><th style="width:78px">일자</th><th>품목</th><th>규격</th><th style="text-align:right; width:70px">수량</th><th style="text-align:right">단가</th><th style="text-align:right">공급가액</th><th>비고</th><th style="width:54px"></th></tr></thead>
+      <tbody id="dsBody"></tbody>
+    </table>
+    <div class="actions">
+      <button class="btn btn-ghost btn-sm" id="dsFromQuote">↧ 견적서 품목 가져오기</button>
+      <button class="btn btn-ghost btn-sm" id="dsAddRow">+ 빈 행 추가</button>
+      <button class="btn btn-ghost btn-sm" id="dsClear">전체 비우기</button>
+    </div>
+    <div class="note" id="dsNote"></div>
+    <div class="actions">
+      <button class="btn btn-primary" id="dsPdfBtn">⬇ 거래명세표 PDF 다운로드 (A4 가로 · 보관용+업체용)</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="tag">6</span>거래명세표 미리보기 <span class="cnt">— 인쇄 시 A4 가로 1장</span></h2>
+    <div class="sheet-outer"><div id="dsheet"></div></div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="tag">※</span>데이터에서 확인된 가격 규칙</h2>
+    <ul class="rules">
+      <li><b>같은 품번 재견적의 88%는 단가 동일</b> — 이력에 있으면 이력 단가가 정답 (이력 행 클릭으로 바로 적용)</li>
+      <li>품목의 절반(694행)에 <b>자재/가공 단가 분해</b> 기록 — 사급 체크 시 가공비 단가로 자동 전환</li>
+      <li>재질형(SS5T 등)은 도면·자재 사양에 따라 편차 큼 — 자재 두께가 다르면 단가도 달라진 사례 확인</li>
+      <li>가공비/자재비 비율: 박판(≤5T) ≈ 0.8~1.0, 후판(8T↑) ≈ 0.3~0.7 — 자재비 입력 시 추정에 사용</li>
+      <li>금액은 1,000원 단위 라운딩, 소액 가공비 사실상 최소 3,000~5,000원</li>
+    </ul>
+  </div>
+
+  <footer class="app">효주기업 견적서 PDF 609건(2022.01–2026.06) 분석 · 오프라인 단일 HTML</footer>
+</div>
+
+<style id="pageStyle"></style>
+<script>
+const DATA = []; /* 이력 데이터 제거(공개판) */
+
+const $ = id => document.getElementById(id);
+const won = n => n==null||n==='' ? '' : (typeof n==='string' ? n : Math.round(n).toLocaleString('ko-KR'));
+const med = a => { if(!a.length) return null; const s=[...a].sort((x,y)=>x-y); const m=Math.floor(s.length/2); return s.length%2 ? s[m] : (s[m-1]+s[m])/2; };
+const isNum = x => typeof x === 'number';
+const round1000 = x => Math.max(0, Math.round(x/1000)*1000);
+const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+const norm = s => String(s||'').toUpperCase().replace(/\s/g,'');
+
+function unitOf(r){
+  if(r.src===1){
+    if(isNum(r.u)) return r.u;
+    if(isNum(r.h)&&isNum(r.q)&&r.q>0) return r.h/r.q;
+    if(isNum(r.h)&&r.q==null) return r.h;
+    return null;
+  }
+  return isNum(r.h)?r.h:null;
+}
+// 행별 자재/가공 단가 (분해 정보)
+function matOf(r){ return r.src===1 ? (isNum(r.mc)?r.mc:null) : (isNum(r.jc)?r.jc:null); }
+function procOf(r){ return r.src===1 ? (isNum(r.pc)?r.pc:null) : (isNum(r.gc)?r.gc:null); }
+
+/* ---------- 필터/이력 ---------- */
+function fill(sel, items, allLabel){
+  sel.innerHTML='';
+  const o0=document.createElement('option'); o0.value=''; o0.textContent=allLabel; sel.appendChild(o0);
+  items.forEach(v=>{const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o);});
+}
+function rebuildThk(){
+  const f=$('fam').value;
+  const ts=[...new Set(DATA.filter(r=>r.t!=null&&(!f||r.f===f)).map(r=>r.t))].sort((a,b)=>a-b);
+  fill($('thk'), ts, '전체');
+}
+function filtered(){
+  const f=$('fam').value, t=$('thk').value, v=$('ven').value;
+  return DATA.filter(r=>(!f||r.f===f)&&(!t||r.t===parseFloat(t))&&(!v||r.v===v));
+}
+function autoSpec(){
+  const f=$('fam').value, t=$('thk').value;
+  const qty=parseInt($('qtyin').value.replace(/[^0-9]/g,'')||'1',10);
+  let s='';
+  if(f&&t) s=f+(parseFloat(t)%1===0?parseInt(t):t)+'T';
+  else if(f) s=f;
+  if(s&&qty>1) s+=' ('+qty+'EA)';
+  return s;
+}
+let specTouched=false;
+
+function renderHist(){
+  const rows=filtered();
+  const sorted=[...rows].sort((a,b)=>(b.d||'').localeCompare(a.d||''));
+  $('histCnt').textContent='— '+rows.length+'건 · 최신순';
+  $('histBody').innerHTML=sorted.length?sorted.slice(0,300).map((r,i)=>`
+    <tr class="pick" data-pi="${i}" style="cursor:pointer;">
+      <td>${r.d||''}</td><td>${esc(r.v)}</td><td>${esc(r.m)}${r.nt?'<div class="cnt">메모: '+esc(r.nt).slice(0,40)+'</div>':''}</td>
+      <td class="num">${won(matOf(r))}</td><td class="num">${won(procOf(r))}</td>
+      <td class="num"><b>${won(unitOf(r))}</b></td><td class="num">${r.src===1?won(r.q):''}</td><td class="num">${won(r.h)}</td>
+    </tr>`).join(''):'<tr><td colspan="8" class="empty">조건에 맞는 이력이 없습니다</td></tr>';
+  $('histBody')._rows=sorted.slice(0,300);
+}
+$('histBody').addEventListener('click', e=>{
+  const tr=e.target.closest('tr.pick'); if(!tr) return;
+  const r=$('histBody')._rows[parseInt(tr.dataset.pi,10)];
+  $('specin').value=r.m; specTouched=true;
+  if(r.src===1&&isNum(r.q)) $('qtyin').value=r.q.toLocaleString('ko-KR');
+  const m=matOf(r);
+  if(isNum(m)&&m>0){ $('jcin').value=m.toLocaleString('ko-KR'); }
+  if(r.v && !$('qVendor').value){ $('qVendor').value=r.v; renderSheet(); if(!dsTouched.vendor){ $('dVendor').value=r.v; renderDsSheet(); } }
+  lastPicked=r;
+  calc();
+});
+let lastPicked=null;
+
+/* ---------- 추천 계산 ---------- */
+// 가공비/자재비 비율 풀: 구형(gc/jc) + 신형 분해(pc/mc)
+function gcRatio(){
+  const f=$('fam').value, t=$('thk').value?parseFloat($('thk').value):null;
+  function pool(filterT){
+    return DATA.filter(r=>{
+      if(f&&r.f!==f) return false;
+      if(filterT&&t!=null&&r.t!==t) return false;
+      const m=matOf(r), p=procOf(r);
+      return isNum(m)&&m>0&&isNum(p)&&p>0;
+    }).map(r=>procOf(r)/matOf(r));
+  }
+  let p=pool(true);
+  if(p.length>=5) return {r:med(p), n:p.length, lbl:(f||'전체')+($('thk').value?(' '+$('thk').value+'T'):'')};
+  p=pool(false);
+  if(p.length>=3) return {r:med(p), n:p.length, lbl:(f||'전체')+' 재질군'};
+  const all=DATA.map(r=>{const m=matOf(r),pp=procOf(r); return (isNum(m)&&m>0&&isNum(pp)&&pp>0)?pp/m:null;}).filter(isNum);
+  return {r:med(all)||0.86, n:all.length, lbl:'전체'};
+}
+// 사급용 가공 단가 풀
+function procPool(){
+  return filtered().map(procOf).filter(x=>isNum(x)&&x>0);
+}
+function calc(){
+  const band=$('calcBand'), note=$('calcNote');
+  const isSagup=$('sagup').checked;
+  $('jcin').disabled=isSagup;
+  const qty=parseInt($('qtyin').value.replace(/[^0-9]/g,'')||'1',10);
+  const jcRaw=$('jcin').value.replace(/[^0-9]/g,'');
+  const jc=isSagup?0:(jcRaw?parseInt(jcRaw,10):null);
+  if(!specTouched) $('specin').value=autoSpec();
+  note.classList.remove('show');
+  lastCalc=null; $('decideBtn').disabled=true;
+
+  const rows=filtered();
+  let unit=null, unitSrc='', mc=null, pc=null;
+
+  // 이력 행 클릭으로 선택된 경우 최우선
+  if(lastPicked && norm($('specin').value)===norm(lastPicked.m)){
+    const u=unitOf(lastPicked);
+    if(isNum(u)){
+      mc=matOf(lastPicked); pc=procOf(lastPicked);
+      unit=isSagup&&isNum(pc)?pc:Math.round(u);
+      unitSrc='이력 단가 ('+(lastPicked.d||'')+', '+lastPicked.v+')'+(isSagup&&isNum(pc)?' · 사급: 가공비만':'');
+    }
+  }
+  if(unit===null){
+    if(isSagup){
+      const p=procPool();
+      if(p.length){ unit=Math.max(round1000(med(p)),3000); pc=unit; unitSrc='이력 가공 단가 중앙값 ('+p.length+'건)'; }
+    } else if(jc!==null){
+      const {r,n,lbl}=gcRatio();
+      const gcEst=Math.max(round1000(jc*r),5000);
+      unit=round1000(jc+gcEst); mc=jc; pc=gcEst;
+      unitSrc='자재비 '+won(jc)+' + 가공비 추정 '+won(gcEst)+' (×'+r.toFixed(2)+', '+lbl+' '+n+'건)';
+    } else {
+      const units=rows.map(unitOf).filter(isNum);
+      if(units.length){ unit=Math.round(med(units)); unitSrc='이력 단가 중앙값 ('+units.length+'건)'; }
+    }
+  }
+  if(unit===null){
+    band.innerHTML='<div class="empty">재질을 선택하거나 자재비를 입력하면 추천 단가가 표시됩니다</div>';
+    return;
+  }
+  const total=unit*qty;
+  function stat(k,v,s,cls){ return `<div class="stat${cls?' '+cls:''}"><div class="k">${k}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:''}</div>`; }
+  band.innerHTML=
+    stat('단가 / 1개', won(unit)+'원', unitSrc, unitSrc.startsWith('이력 단가 (')?'good':'')+
+    stat('수량', won(qty), '')+
+    stat('추천 합계', won(total)+'원', isSagup?'자재 사급 — 가공비만':'단가 × 수량', 'hero');
+
+  const units=rows.map(unitOf).filter(isNum);
+  if(units.length>=2){
+    const mn=Math.min(...units), mx=Math.max(...units);
+    if(mx/Math.max(mn,1)>=3 && !unitSrc.startsWith('이력 단가 (')){
+      note.textContent='⚠ 이 조건의 이력 단가가 '+won(mn)+'~'+won(mx)+'원으로 편차가 큽니다. 도면 크기·가공범위를 확인하고 아래 이력에서 비슷한 건을 클릭해 적용하세요.';
+      note.classList.add('show');
+    }
+  } else if(rows.length<3){
+    note.textContent='⚠ 선택 조건의 이력이 '+rows.length+'건뿐이라 추정 신뢰도가 낮습니다.';
+    note.classList.add('show');
+  }
+  lastCalc={spec:$('specin').value.trim(), unit, qty, mc, pc, sagup:isSagup};
+  $('decideBtn').disabled=false;
+}
+let lastCalc=null;
+
+$('fam').addEventListener('change', ()=>{ rebuildThk(); specTouched=false; lastPicked=null; renderHist(); calc(); });
+$('thk').addEventListener('change', ()=>{ specTouched=false; lastPicked=null; renderHist(); calc(); });
+$('ven').addEventListener('change', ()=>{ lastPicked=null; renderHist(); calc(); });
+$('qtyin').addEventListener('input', e=>{
+  const v=e.target.value.replace(/[^0-9]/g,''); e.target.value=v?parseInt(v,10).toLocaleString('ko-KR'):'';
+  if(!specTouched) $('specin').value=autoSpec();
+  calc();
+});
+$('jcin').addEventListener('input', e=>{
+  const v=e.target.value.replace(/[^0-9]/g,''); e.target.value=v?parseInt(v,10).toLocaleString('ko-KR'):'';
+  lastPicked=null; calc();
+});
+$('sagup').addEventListener('change', calc);
+$('specin').addEventListener('input', ()=>{ specTouched=true; calc(); });
+
+/* ---------- 견적서 작성 ---------- */
+let draft=[];
+let formMode='new';
+function decide(){
+  if(!lastCalc) return;
+  if(!lastCalc.spec){ alert('규격 표기를 입력해 주세요.'); $('specin').focus(); return; }
+  draft.push({
+    spec:lastCalc.spec, unit:lastCalc.unit, qty:lastCalc.qty,
+    rmk:lastCalc.sagup?'자재 사급':'',
+    mc:isNum(lastCalc.mc)?lastCalc.mc:null, pc:isNum(lastCalc.pc)?lastCalc.pc:null,
+    baseUnit:isNum(lastCalc.mc)&&isNum(lastCalc.pc)?(lastCalc.mc+lastCalc.pc):lastCalc.unit,
+    sagup:!!lastCalc.sagup
+  });
+  if($('ven').value && !$('qVendor').value) $('qVendor').value=$('ven').value;
+  renderDraft();
+}
+$('decideBtn').addEventListener('click', decide);
+function itTotal(it){
+  const u=isNum(it.unit)?it.unit:0, q=isNum(it.qty)?it.qty:0;
+  return u*q;
+}
+function renderDraft(){
+  $('draftCnt').textContent=draft.length?('— '+draft.length+'개 품목'):'';
+  $('draftBody').innerHTML=draft.length?draft.map((it,i)=>{
+    const canSagup=isNum(it.pc);
+    return `<tr>
+      <td>${i+1}</td>
+      <td><input type="text" value="${esc(it.spec)}" data-i="${i}" data-k="spec"></td>
+      <td class="num"><input type="text" class="num" value="${won(it.unit)}" data-i="${i}" data-k="unit"></td>
+      <td class="num"><input type="text" class="num" value="${won(it.qty)}" data-i="${i}" data-k="qty"></td>
+      <td class="num"><b>${won(itTotal(it))||''}</b></td>
+      <td style="text-align:center;">${canSagup?`<input type="checkbox" data-i="${i}" data-k="sagup" ${it.sagup?'checked':''} title="자재 사급 — 가공비 ${won(it.pc)}원만 적용">`:'<span class="cnt">-</span>'}</td>
+      <td><input type="text" value="${esc(it.rmk)}" data-i="${i}" data-k="rmk"></td>
+      <td><button class="btn btn-sm btn-del" data-del="${i}">삭제</button></td>
+    </tr>`;}).join(''):'<tr><td colspan="8" class="empty">위에서 [견적 결정]을 누르거나 빈 행을 추가하세요</td></tr>';
+  renderSheet();
+}
+$('draftBody').addEventListener('input', e=>{
+  const i=e.target.dataset.i, k=e.target.dataset.k;
+  if(i==null||k==='sagup') return;
+  let v=e.target.value;
+  if(k==='unit'||k==='qty'){
+    const n=v.replace(/[^0-9]/g,'');
+    draft[i][k]=n?parseInt(n,10):'';
+    if(k==='unit') draft[i].sagup=false;
+    if(document.activeElement===e.target&&n){ e.target.value=parseInt(n,10).toLocaleString('ko-KR'); }
+  } else draft[i][k]=v;
+  const tr=e.target.closest('tr');
+  tr.querySelector('td:nth-child(5) b').textContent=won(itTotal(draft[i]))||'';
+  renderSheet();
+});
+$('draftBody').addEventListener('change', e=>{
+  if(e.target.dataset.k!=='sagup') return;
+  const i=parseInt(e.target.dataset.i,10);
+  const it=draft[i];
+  it.sagup=e.target.checked;
+  if(it.sagup){
+    it.unit=it.pc;
+    if(!/사급/.test(it.rmk||'')) it.rmk=((it.rmk||'')+' 자재 사급').trim();
+  } else {
+    it.unit=it.baseUnit!=null?it.baseUnit:((it.mc||0)+(it.pc||0));
+    it.rmk=(it.rmk||'').replace(/\s*자재 사급/,'').trim();
+  }
+  renderDraft();
+});
+$('draftBody').addEventListener('click', e=>{
+  const d=e.target.dataset.del;
+  if(d!=null){ draft.splice(parseInt(d,10),1); renderDraft(); }
+});
+$('addRowBtn').addEventListener('click', ()=>{ draft.push({spec:'',unit:'',qty:'',rmk:'',mc:null,pc:null,baseUnit:null,sagup:false}); renderDraft(); });
+$('clearBtn').addEventListener('click', ()=>{ if(!draft.length||confirm('견적서 품목을 모두 비울까요?')){ draft=[]; renderDraft(); } });
+$('formNew').addEventListener('click', ()=>{ formMode='new'; $('formNew').classList.add('on'); $('formOld').classList.remove('on'); renderSheet(); });
+$('formOld').addEventListener('click', ()=>{ formMode='old'; $('formOld').classList.add('on'); $('formNew').classList.remove('on'); renderSheet(); });
+
+/* ---------- 見積書 미리보기 ---------- */
+function renderSheet(){
+  $('sVendor').textContent=$('qVendor').value||' ';
+  $('sPerson').textContent=$('qPerson').value||' ';
+  $('sDate').textContent=$('qDate').value||'';
+  $('sPum').textContent=$('qPum').value||'';
+  const total=draft.reduce((s,it)=>s+itTotal(it),0);
+  $('sTotal').textContent=total?won(total):'';
+  const area=$('sTableArea');
+  if(formMode==='new'){
+    const N=Math.max(13, draft.length);
+    let rows='';
+    for(let i=0;i<N;i++){
+      const it=draft[i];
+      rows+=it?`<tr><td class="c" style="width:36px">${i+1}</td><td class="c">${esc(it.spec)}</td><td class="r" style="width:118px">${won(it.unit)}</td><td class="r" style="width:64px">${won(it.qty)}</td><td class="r" style="width:108px">${won(itTotal(it))||'-'}</td><td style="width:96px; font-size:11px;">${esc(it.rmk)}</td></tr>`
+             :`<tr><td class="c" style="width:36px">${i+1}</td><td></td><td style="width:118px"></td><td style="width:64px"></td><td class="r" style="width:108px">-</td><td style="width:96px"></td></tr>`;
+    }
+    area.innerHTML=`
+      <table class="items">
+        <thead>
+          <tr><th colspan="6" class="band">상 세 내 역</th></tr>
+          <tr><th>NO</th><th>규 격 (공정명)</th><th>단 가 (자재+절단+절곡)</th><th>수량</th><th>합계</th><th>비고</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <table class="sums">
+        <tr><td>① 자 재 비 합 계</td><td class="r"></td></tr>
+        <tr><td>② 가 공 비 합 계</td><td class="r"></td></tr>
+        <tr><td>③ 직접 경비 (①+②)</td><td class="r"></td></tr>
+        <tr><td>④ 간접 경비 및 기업 이윤 (③×10%)</td><td class="r"></td></tr>
+        <tr><td style="font-weight:700;">금 액 합 계 (③+④)</td><td class="r">${total?won(total):''}</td></tr>
+      </table>`;
+  } else {
+    const N=Math.max(9, draft.length);
+    let rows='';
+    for(let i=0;i<N;i++){
+      const it=draft[i];
+      const q=it&&isNum(it.qty)?it.qty:1;
+      const jc=it&&it.sagup?'사급':(it&&isNum(it.mc)?won(it.mc*q):'');
+      const gc=it&&isNum(it.pc)?won(it.pc*q):(it?won(itTotal(it)):'');
+      rows+=it?`<tr><td class="c" style="width:38px">${i+1}</td><td class="c">${esc(it.spec)}${q>1&&!/\(\d+EA\)/.test(it.spec)?' ('+q+'EA)':''}</td><td class="r" style="width:120px">${jc}</td><td class="r" style="width:130px">${gc}</td><td class="r" style="width:120px">${won(itTotal(it))||''}</td></tr>`
+             :`<tr><td class="c" style="width:38px">${i+1}</td><td></td><td style="width:120px"></td><td style="width:130px"></td><td style="width:120px"></td></tr>`;
+    }
+    area.innerHTML=`
+      <table class="items">
+        <thead>
+          <tr><th colspan="5" class="band">가 공 비</th></tr>
+          <tr><th>NO</th><th>재질</th><th>자재비</th><th>레이저+벤딩</th><th>합계</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+  $('sRef').textContent='(참   고)\n'+($('qRef').value||'');
+}
+['qVendor','qPerson','qDate','qPum','qRef'].forEach(id=>$(id).addEventListener('input', renderSheet));
+$('qVendor').addEventListener('input', ()=>{ if(!dsTouched.vendor){ $('dVendor').value=$('qVendor').value; renderDsSheet(); } });
+
+/* ---------- 거래명세표 ---------- */
+let dsItems=[];
+const dsTouched={vendor:false};
+const DS_ROWS=18;
+function dsRowAmt(it){
+  const q=isNum(it.qty)?it.qty:0, u=isNum(it.unit)?it.unit:0;
+  return q*u;
+}
+function renderDs(){
+  $('dsCnt').textContent=dsItems.length?('— '+dsItems.length+'개 품목'):'';
+  $('dsBody').innerHTML=dsItems.length?dsItems.map((it,i)=>`
+    <tr>
+      <td>${i+1}</td>
+      <td><input type="text" value="${esc(it.dt)}" data-i="${i}" data-k="dt" placeholder="m/d"></td>
+      <td><input type="text" value="${esc(it.nm)}" data-i="${i}" data-k="nm"></td>
+      <td><input type="text" value="${esc(it.spec)}" data-i="${i}" data-k="spec"></td>
+      <td class="num"><input type="text" class="num" value="${won(it.qty)}" data-i="${i}" data-k="qty"></td>
+      <td class="num"><input type="text" class="num" value="${won(it.unit)}" data-i="${i}" data-k="unit"></td>
+      <td class="num"><b>${won(dsRowAmt(it))||''}</b></td>
+      <td><input type="text" value="${esc(it.rmk)}" data-i="${i}" data-k="rmk"></td>
+      <td><button class="btn btn-sm btn-del" data-del="${i}">삭제</button></td>
+    </tr>`).join(''):'<tr><td colspan="9" class="empty">품목이 없습니다 — [견적서 품목 가져오기] 또는 빈 행 추가</td></tr>';
+  const note=$('dsNote');
+  if(dsItems.length>DS_ROWS){
+    note.textContent='⚠ 품목이 '+dsItems.length+'개입니다. 양식 1장(18행)을 초과해 표가 길어집니다. 두 장 분할 발행을 권장합니다.';
+    note.classList.add('show');
+  } else note.classList.remove('show');
+  renderDsSheet();
+}
+$('dsBody').addEventListener('input', e=>{
+  const i=e.target.dataset.i, k=e.target.dataset.k;
+  if(i==null) return;
+  let v=e.target.value;
+  if(k==='qty'||k==='unit'){
+    const n=v.replace(/[^0-9]/g,'');
+    dsItems[i][k]=n?parseInt(n,10):'';
+    if(document.activeElement===e.target&&n){ e.target.value=parseInt(n,10).toLocaleString('ko-KR'); }
+  } else dsItems[i][k]=v;
+  const tr=e.target.closest('tr');
+  tr.querySelector('td:nth-child(7) b').textContent=won(dsRowAmt(dsItems[i]))||'';
+  renderDsSheet();
+});
+$('dsBody').addEventListener('click', e=>{
+  const d=e.target.dataset.del;
+  if(d!=null){ dsItems.splice(parseInt(d,10),1); renderDs(); }
+});
+$('dsAddRow').addEventListener('click', ()=>{ dsItems.push({dt:'',nm:'',spec:'',qty:'',unit:'',rmk:''}); renderDs(); });
+$('dsClear').addEventListener('click', ()=>{ if(!dsItems.length||confirm('거래명세표 품목을 모두 비울까요?')){ dsItems=[]; renderDs(); } });
+$('dsFromQuote').addEventListener('click', ()=>{
+  if(!draft.length){ alert('견적서에 품목이 없습니다.'); return; }
+  const qd=$('qDate').value;
+  const md=qd?(parseInt(qd.slice(5,7),10)+'/'+parseInt(qd.slice(8,10),10)):'';
+  draft.forEach(it=>{ dsItems.push({dt:md, nm:it.spec||'', spec:'', qty:isNum(it.qty)?it.qty:1, unit:isNum(it.unit)?it.unit:'', rmk:it.rmk||''}); });
+  if($('qVendor').value && !$('dVendor').value){ $('dVendor').value=$('qVendor').value; }
+  if(!$('dDate').value && qd){ $('dDate').value=qd; }
+  renderDs();
+});
+$('dVendor').addEventListener('input', ()=>{ dsTouched.vendor=true; renderDsSheet(); });
+['dDate','dBank'].forEach(id=>$(id).addEventListener('input', renderDsSheet));
+
+function dsCopyHtml(kind){
+  const v=$('dVendor').value||'';
+  const d=$('dDate').value;
+  const dateStr=d?(parseInt(d.slice(0,4),10)+'년 '+parseInt(d.slice(5,7),10)+'월 '+parseInt(d.slice(8,10),10)+'일'):'';
+  const total=dsItems.reduce((s,it)=>s+dsRowAmt(it),0);
+  let rows='';
+  const N=Math.max(DS_ROWS, dsItems.length);
+  for(let i=0;i<N;i++){
+    const it=dsItems[i];
+    rows+=it?`<tr><td class="c" style="width:40px">${esc(it.dt)}</td><td style="width:96px">${esc(it.nm)}</td><td style="width:78px">${esc(it.spec)}</td><td class="r" style="width:50px">${won(it.qty)}</td><td class="r" style="width:74px">${won(it.unit)}</td><td class="r" style="width:92px">${won(dsRowAmt(it))||'-'}</td><td style="width:54px">${esc(it.rmk).slice(0,16)}</td></tr>`
+           :`<tr><td style="width:40px"></td><td style="width:96px"></td><td style="width:78px"></td><td style="width:50px"></td><td style="width:74px"></td><td class="r" style="width:92px">-</td><td style="width:54px"></td></tr>`;
+  }
+  return `<div class="copy">
+    <div class="dtitle">거 래 명 세 표 &nbsp;&nbsp;<span class="sub">(${kind})</span></div>
+    <div class="dmeta">
+      <div class="ddate">${dateStr}</div>
+      <div class="dto"><span class="nm">${esc(v)}</span><span class="gh">귀하</span></div>
+      <div class="dcalc">아래와 같이 계산합니다.</div>
+    </div>
+    <table class="dt">
+      <tr class="ysum"><td colspan="3" style="text-align:right; border-right:none;">합 계 금 액 (&nbsp; ₩</td><td colspan="2" class="r" style="border-left:none; border-right:none;">${won(total)}&nbsp; )</td><td colspan="2" style="border-left:none;">(V.A.T별도)</td></tr>
+      <tr class="yhead"><th>일자</th><th>품목</th><th>규격</th><th>수량</th><th>단가</th><th>공급가액</th><th>비고</th></tr>
+      ${rows}
+      <tr class="dsum"><td colspan="4" class="c">합&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;계</td><td class="c">₩</td><td class="r">${won(total)}</td><td></td></tr>
+      <tr><td colspan="3"></td><td colspan="2" class="c" style="font-weight:700;">인수자</td><td colspan="2"></td></tr>
+    </table>
+    <div class="dbank">입금계좌 : ${esc($('dBank').value)}</div>
+  </div>`;
+}
+function renderDsSheet(){
+  $('dsheet').innerHTML=dsCopyHtml('보관용')+dsCopyHtml('업체용');
+}
+
+/* ---------- PDF (인쇄) ---------- */
+function doPrint(mode, title){
+  const old=document.title;
+  document.title=title;
+  document.body.classList.add(mode);
+  $('pageStyle').textContent = mode==='print-ds'
+    ? '@page{size:A4 landscape; margin:14mm 7mm 5mm;}'
+    : '@page{size:A4 portrait; margin:14mm 12mm;}';
+  window.print();
+  document.body.classList.remove(mode);
+  document.title=old;
+}
+$('pdfBtn').addEventListener('click', ()=>{
+  if(!draft.length){ alert('견적서에 품목이 없습니다.'); return; }
+  const v=$('qVendor').value.trim();
+  if(!v){ alert('업체명을 입력해 주세요.'); $('qVendor').focus(); return; }
+  const d=($('qDate').value||'').replace(/-/g,'').slice(2);
+  doPrint('print-quote', v+'-'+d);
+});
+$('dsPdfBtn').addEventListener('click', ()=>{
+  if(!dsItems.length){ alert('거래명세표에 품목이 없습니다.'); return; }
+  const v=$('dVendor').value.trim();
+  if(!v){ alert('업체명을 입력해 주세요.'); $('dVendor').focus(); return; }
+  const d=($('dDate').value||'').replace(/-/g,'').slice(2);
+  doPrint('print-ds', v+' '+d+' 거래명세서');
+});
+
+/* ========== v5: 견적 메모리 (localStorage) + JSON 공유 ========== */
+const LS_KEY='hyoju_saved_quotes_v5';
+function loadSaved(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)||'[]'); }catch(e){ return []; } }
+function writeSaved(arr){ try{ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }catch(e){ alert('저장 공간이 부족하거나 차단되었습니다.'); } }
+function quoteTotal(){ return draft.reduce((s,it)=>{ const u=parseFloat(String(it.unit).replace(/[^0-9.-]/g,''))||0; const q=it.sagup?1:(parseFloat(String(it.qty).replace(/[^0-9.-]/g,''))||1); return s+(it.qty===''||it.qty==null?u:u*q); },0); }
+function snapshotQuote(){
+  return { id:'q'+Date.now(), savedAt:new Date().toISOString().slice(0,10),
+    vendor:$('qVendor').value.trim(), person:$('qPerson').value.trim(), date:$('qDate').value,
+    pum:$('qPum').value.trim(), ref:$('qRef').value, formMode:(typeof formMode!=='undefined'?formMode:'new'),
+    items:JSON.parse(JSON.stringify(draft)), total:Math.round(quoteTotal()) };
+}
+function renderSaved(){
+  const arr=loadSaved();
+  $('savedWrap').style.display = arr.length?'block':'none';
+  $('savedCnt').textContent='— '+arr.length+'건';
+  arr.sort((a,b)=>(b.id||'').localeCompare(a.id||''));
+  $('savedBody').innerHTML = arr.length? arr.map(q=>`
+    <tr><td>${esc(q.savedAt||'')}</td><td>${esc(q.vendor||'(미지정)')}</td>
+    <td>${esc(q.pum||'')}<div class="cnt">${(q.items||[]).length}개 품목</div></td>
+    <td class="num"><b>${won(q.total)}</b></td>
+    <td style="text-align:center;"><button class="btn btn-sm" data-load="${q.id}">불러오기</button></td>
+    <td><button class="btn btn-sm btn-del" data-rm="${q.id}">삭제</button></td></tr>`).join('')
+    : '<tr><td colspan="6" class="empty">저장된 견적이 없습니다</td></tr>';
+}
+function applyQuote(q){
+  $('qVendor').value=q.vendor||''; $('qPerson').value=q.person||'';
+  $('qDate').value=q.date||$('qDate').value; $('qPum').value=q.pum||'';
+  $('qRef').value=q.ref!=null?q.ref:$('qRef').value;
+  if(q.formMode && typeof formMode!=='undefined'){ formMode=q.formMode;
+    if(formMode==='old'){ $('formOld').classList.add('on'); $('formNew').classList.remove('on'); }
+    else { $('formNew').classList.add('on'); $('formOld').classList.remove('on'); } }
+  draft = JSON.parse(JSON.stringify(q.items||[]));
+  renderDraft(); renderSheet();
+}
+$('saveQuoteBtn').addEventListener('click', ()=>{
+  if(!draft.length){ alert('견적서에 품목이 없습니다. 먼저 품목을 추가해 주세요.'); return; }
+  const arr=loadSaved(); arr.push(snapshotQuote()); writeSaved(arr); renderSaved();
+  const w=$('savedWrap'); w.scrollIntoView({behavior:'smooth',block:'nearest'});
+});
+$('savedBody').addEventListener('click', e=>{
+  const lb=e.target.closest('[data-load]'); const rm=e.target.closest('[data-rm]');
+  if(lb){ const q=loadSaved().find(x=>x.id===lb.dataset.load); if(q){ applyQuote(q); window.scrollTo({top:0,behavior:'smooth'}); } }
+  if(rm){ if(confirm('이 저장 견적을 삭제할까요?')){ writeSaved(loadSaved().filter(x=>x.id!==rm.dataset.rm)); renderSaved(); } }
+});
+$('exportBtn').addEventListener('click', ()=>{
+  const arr=loadSaved();
+  if(!arr.length){ alert('내보낼 저장 견적이 없습니다.'); return; }
+  const blob=new Blob([JSON.stringify({app:'hyoju-quote-v5',exportedAt:new Date().toISOString(),quotes:arr},null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob); const a=document.createElement('a');
+  a.href=url; a.download='효주_저장견적_'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+});
+$('importBtn').addEventListener('click', ()=>$('importFile').click());
+$('importFile').addEventListener('change', e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{ try{
+    const j=JSON.parse(rd.result);
+    const incoming=Array.isArray(j)?j:(j.quotes||[]);
+    if(!incoming.length){ alert('가져올 견적이 없습니다.'); return; }
+    const cur=loadSaved(); const seen=new Set(cur.map(x=>x.id));
+    let add=0; incoming.forEach(q=>{ if(q&&q.id&&!seen.has(q.id)){ cur.push(q); seen.add(q.id); add++; } });
+    writeSaved(cur); renderSaved();
+    alert(add+'건을 가져왔습니다. (중복 '+(incoming.length-add)+'건 제외)');
+  }catch(err){ alert('JSON 파일을 읽을 수 없습니다.'); } };
+  rd.readAsText(f); e.target.value='';
+});
+
+/* ========== DXF 자동견적 (베타) ========== */
+const DXF_LS='hyoju_dxf_cfg_v1';
+const DXF_DENS={SS:7.85,SUS:8.00,AL:2.70,CR:7.85,GI:7.85,EGI:7.85,SK5:7.85,PO:1.40,HOT:7.85};
+function dxfDefaults(){
+  return {
+    util:1.20,                 // bbox→소요 자재 면적 배수(여유)
+    kg:{SS:1300,SUS:5000,AL:5500,CR:1500,GI:1500,EGI:1600,SK5:3500,PO:3000,HOT:1300},
+    bands:[                     // 두께대별 절단단가(원/mm)·피어싱(원/개)
+      {max:3, cut:8,  pierce:120},
+      {max:6, cut:14, pierce:250},
+      {max:10,cut:22, pierce:450},
+      {max:1e9,cut:40,pierce:900}
+    ],
+    bend:1500,                  // 절곡 1회 단가
+    floor:3000,                 // 최소 단가
+    scale:1.0,                  // 전역 보정 배수
+    vendor:{},                  // 업체별 보정계수
+    samples:[]                  // 캘리브레이션 표본
+  };
+}
+let dxfCfg=(function(){ try{ const j=JSON.parse(localStorage.getItem(DXF_LS)); return j?Object.assign(dxfDefaults(),j):dxfDefaults(); }catch(e){ return dxfDefaults(); } })();
+function dxfSaveCfg(){ try{ localStorage.setItem(DXF_LS, JSON.stringify(dxfCfg)); }catch(e){} }
+function bandOf(t){ t=t||0; return dxfCfg.bands.find(b=>t<=b.max)||dxfCfg.bands[dxfCfg.bands.length-1]; }
+const numClean=v=>{ const n=parseFloat(String(v==null?'':v).replace(/[^0-9.\-]/g,'')); return isNaN(n)?0:n; };
+
+/* ---- DXF 파서 ---- */
+function dxfPairs(text){
+  const L=text.split(/\r\n|\r|\n/); const P=[]; let i=0;
+  while(i+1<L.length){
+    const c=parseInt((L[i]||'').trim(),10);
+    if(isNaN(c)){ i++; continue; }
+    P.push([c,(L[i+1]||'').trim()]); i+=2;
+  }
+  return P;
+}
+function dxfParse(text){
+  const P=dxfPairs(text);
+  const blocks={}; const ents=[]; const layers={};
+  let section=null, blockName=null, cur=null, curList=null;
+  function push(){ if(cur && cur.type){ (curList||ents).push(cur); } cur=null; }
+  for(let i=0;i<P.length;i++){
+    const c=P[i][0], v=P[i][1];
+    if(c===0){
+      push();
+      if(v==='SECTION'){ section='?'; continue; }
+      if(v==='ENDSEC'){ section=null; curList=null; blockName=null; continue; }
+      if(v==='BLOCK'){ cur={type:'__BLOCK__', c:{}}; curList=null; continue; }
+      if(v==='ENDBLK'){ blockName=null; curList=null; continue; }
+      if(section==='ENTITIES' || section==='BLOCKS'){
+        cur={type:v, c:{}, layer:'0'};
+        curList = section==='BLOCKS' ? (blockName?(blocks[blockName]=blocks[blockName]||[]):null) : ents;
+      } else cur=null;
+      continue;
+    }
+    if(section==='?' && c===2){ section=v; continue; }
+    if(!cur) continue;
+    if(cur.type==='__BLOCK__'){ if(c===2){ blockName=v; blocks[blockName]=blocks[blockName]||[]; } continue; }
+    if(c===8){ cur.layer=v; layers[v]=(layers[v]||0)+1; }
+    (cur.c[c]=cur.c[c]||[]).push(v);
+  }
+  push();
+  return {blocks, ents, layers};
+}
+
+/* ---- TRUMPF GEO 파서 (TruTops) — 헤더 면적/bbox로 검증됨 ---- */
+function parseGEO(text){
+  const L=text.split(/\r\n|\r|\n/).map(s=>s.trim());
+  const pts={}; const polys=[]; let i=0;
+  // 점 목록(#~31)
+  for(i=0;i<L.length;i++){ if(L[i]==='#~31') break; }
+  for(;i<L.length;i++){
+    if(L[i]==='P'){ const id=parseInt(L[i+1],10); const xy=(L[i+2]||'').split(/\s+/).map(parseFloat); if(xy.length>=2) pts[id]=[xy[0],xy[1]]; i+=2; }
+    else if(L[i]==='#~32'||L[i]==='#~33'||L[i]==='#~END') break;
+  }
+  // 윤곽(#~33 헤더 + #~331 요소 … #~KONT_END)
+  for(i=0;i<L.length;i++){
+    if(L[i]!=='#~33') continue;
+    const hb=[]; let j=i+1; while(j<L.length && L[j]!=='#~331'){ if(L[j]!=='' && L[j]!=='##~~') hb.push(L[j]); j++; }
+    const hole=hb.length>=2 ? (parseInt(hb[hb.length-1],10)||0) : 0;
+    const poly=[]; let k=j+1;
+    const dist=(u,v)=>Math.hypot(u[0]-v[0],u[1]-v[1]);
+    for(; k<L.length; k++){
+      const tk=L[k];
+      if(tk==='##~~'||tk==='#~KONT_END') break;
+      if(tk==='LIN'){ const ab=(L[k+2]||'').split(/\s+/).map(n=>parseInt(n,10)); const A=pts[ab[0]],B=pts[ab[1]]; if(A&&B){ if(!poly.length)poly.push(A); poly.push(B);} k+=2; }
+      else if(tk==='ARC'){ const abc=(L[k+2]||'').split(/\s+/).map(n=>parseInt(n,10)); const dir=parseFloat(L[k+3]); k+=3;
+        const p=pts[abc[0]],q=pts[abc[1]],r=pts[abc[2]];
+        if(p&&q&&r){ let c,s,e;
+          const combos=[[p,q,r],[q,p,r],[r,p,q]];
+          for(const [cc,ss,ee] of combos){ if(Math.abs(dist(cc,ss)-dist(cc,ee))<1e-3){ c=cc;s=ss;e=ee; break; } }
+          if(!c){ c=p;s=q;e=r; }
+          const rad=dist(c,s); const a0=Math.atan2(s[1]-c[1],s[0]-c[0]), a1=Math.atan2(e[1]-c[1],e[0]-c[0]);
+          let sweep; if(dir===1){ sweep=a1-a0; while(sweep<0)sweep+=2*Math.PI; } else { let w=a0-a1; while(w<0)w+=2*Math.PI; sweep=-w; }
+          const n=Math.max(2,Math.ceil(Math.abs(sweep)/(Math.PI/18)));
+          if(!poly.length) poly.push(s);
+          for(let t=1;t<=n;t++){ const a=a0+sweep*t/n; poly.push([c[0]+rad*Math.cos(a), c[1]+rad*Math.sin(a)]); }
+        }
+      }
+      else if(tk==='CIR'){ const c=pts[parseInt(L[k+2],10)]; const rad=parseFloat(L[k+3]); k+=3;
+        if(c){ const n=48; for(let t=0;t<=n;t++){ const a=2*Math.PI*t/n; poly.push([c[0]+rad*Math.cos(a),c[1]+rad*Math.sin(a)]); } }
+      }
+    }
+    if(poly.length>=2) polys.push({pts:poly, closed:true, loop:true, layer:'CUT'});
+    i=k;
+  }
+  return { polys, layers:{CUT:polys.length} };
+}
+
+/* ---- 엔티티 → 폴리라인(미리보기/길이/구멍/bbox 공용) ---- */
+function arcPts(cx,cy,r,a0,a1,n){
+  const pts=[]; let sweep=a1-a0; while(sweep<0) sweep+=360; n=Math.max(6,Math.ceil(n||sweep/8));
+  for(let k=0;k<=n;k++){ const a=(a0+sweep*k/n)*Math.PI/180; pts.push([cx+r*Math.cos(a), cy+r*Math.sin(a)]); }
+  return pts;
+}
+function entPolys(e, tf){
+  // returns array of {pts:[[x,y]..], closed:bool, loop:bool(=pierce), layer}
+  const num=(arr,i)=>arr&&arr[i]!=null?parseFloat(arr[i]):0;
+  const out=[]; const c=e.c||{};
+  const T=tf||((x,y)=>[x,y]);
+  const ap=(pts,closed,loop)=>out.push({pts:pts.map(p=>T(p[0],p[1])), closed:!!closed, loop:!!loop, layer:e.layer});
+  switch(e.type){
+    case 'LINE': ap([[num(c[10],0),num(c[20],0)],[num(c[11],0),num(c[21],0)]],false,false); break;
+    case 'CIRCLE':{ const r=num(c[40],0); ap(arcPts(num(c[10],0),num(c[20],0),r,0,360,48),true,true); break; }
+    case 'ARC':{ const r=num(c[40],0); ap(arcPts(num(c[10],0),num(c[20],0),r,num(c[50],0),num(c[51],0),0),false,false); break; }
+    case 'ELLIPSE':{
+      const cx=num(c[10],0),cy=num(c[20],0),mx=num(c[11],0),my=num(c[21],0);
+      const r=Math.hypot(mx,my)||1, rat=num(c[40],1)||1, ang=Math.atan2(my,mx);
+      const s=c[41]?num(c[41],0):0, en=c[42]?num(c[42],Math.PI*2):Math.PI*2; const full=Math.abs((en-s)-Math.PI*2)<1e-3;
+      const pts=[]; const N=64; for(let k=0;k<=N;k++){ const tt=s+(en-s)*k/N; const ex=r*Math.cos(tt), ey=r*rat*Math.sin(tt); pts.push([cx+ex*Math.cos(ang)-ey*Math.sin(ang), cy+ex*Math.sin(ang)+ey*Math.cos(ang)]); }
+      ap(pts,full,full); break; }
+    case 'LWPOLYLINE': case 'POLYLINE':{
+      const xs=c[10]||[], ys=c[20]||[]; const pts=[];
+      for(let k=0;k<xs.length;k++) pts.push([parseFloat(xs[k]),parseFloat(ys[k])]);
+      const closed=((parseInt((c[70]||['0'])[0],10)||0)&1)===1;
+      if(closed && pts.length){ pts.push(pts[0]); }
+      if(pts.length>=2) ap(pts,closed,closed);
+      break; }
+    case 'SPLINE':{
+      const xs=c[10]||[], ys=c[20]||[]; const fx=c[11]||[], fy=c[21]||[];
+      const ux=fx.length?fx:xs, uy=fy.length?fy:ys; const pts=[];
+      for(let k=0;k<ux.length;k++) pts.push([parseFloat(ux[k]),parseFloat(uy[k])]);
+      const closed=((parseInt((c[70]||['0'])[0],10)||0)&1)===1;
+      if(pts.length>=2) ap(pts,closed,closed);
+      break; }
+  }
+  return out;
+}
+function collectPolys(model){
+  const polys=[];
+  function handle(list, tf){
+    list.forEach(e=>{
+      if(e.type==='INSERT'){
+        const name=(e.c[2]||[])[0]; const bl=model.blocks[name]; if(!bl) return;
+        const ix=parseFloat((e.c[10]||[0])[0])||0, iy=parseFloat((e.c[20]||[0])[0])||0;
+        const sx=parseFloat((e.c[41]||[1])[0])||1, sy=parseFloat((e.c[42]||[1])[0])||1;
+        const rot=((parseFloat((e.c[50]||[0])[0])||0))*Math.PI/180;
+        const ntf=(x,y)=>{ let X=x*sx, Y=y*sy; const rx=X*Math.cos(rot)-Y*Math.sin(rot), ry=X*Math.sin(rot)+Y*Math.cos(rot); const p=[rx+ix,ry+iy]; return tf?tf(p[0],p[1]):p; };
+        handle(bl, ntf);
+      } else {
+        entPolys(e, tf).forEach(p=>polys.push(p));
+      }
+    });
+  }
+  handle(model.ents, null);
+  return polys;
+}
+function polyMetrics(polys){
+  let cut=0, pierce=0; let minx=Infinity,miny=Infinity,maxx=-Infinity,maxy=-Infinity;
+  polys.forEach(P=>{
+    for(let k=1;k<P.pts.length;k++){ cut+=Math.hypot(P.pts[k][0]-P.pts[k-1][0], P.pts[k][1]-P.pts[k-1][1]); }
+    if(P.loop) pierce++;
+    P.pts.forEach(p=>{ if(p[0]<minx)minx=p[0]; if(p[0]>maxx)maxx=p[0]; if(p[1]<miny)miny=p[1]; if(p[1]>maxy)maxy=p[1]; });
+  });
+  const w=isFinite(maxx)?(maxx-minx):0, h=isFinite(maxy)?(maxy-miny):0;
+  return {cut, pierce, w, h, minx,miny,maxx,maxy};
+}
+
+/* ---- 상태 ---- */
+let dxfModel=null, dxfPolys=[], dxfCutBox=null, dxfLayerClass={};
+function dxfNum(id){ return numClean($(id).value); }
+function dxfGeom(){
+  return {
+    cut:dxfNum('mCut'), pierce:dxfNum('mPierce'), w:dxfNum('mW'), h:dxfNum('mH'),
+    bend:dxfNum('mBend'), qty:Math.max(1,dxfNum('mQty')||1),
+    mat:$('dxfMat').value, thk:dxfNum('dxfThk'), ven:$('dxfVen').value, weld:dxfNum('dxfWeld'),
+    util:dxfCfg.util
+  };
+}
+function dxfEstimateRaw(g){
+  const dens=DXF_DENS[g.mat]||7.85;
+  const kg=(dxfCfg.kg[g.mat]!=null?dxfCfg.kg[g.mat]:1500);
+  const matCost=(g.w*g.h)*(g.util||1)*g.thk*dens/1e6*kg;
+  const b=bandOf(g.thk);
+  const pierceCost=g.pierce*b.pierce, lineCost=g.cut*b.cut, cutCost=pierceCost+lineCost;
+  const bendCost=g.bend*dxfCfg.bend;
+  const raw=matCost+cutCost+bendCost+(g.weld||0);
+  return {matCost,pierceCost,lineCost,cutCost,bendCost,weld:g.weld||0,raw,band:b};
+}
+function dxfEstimate(g){
+  const e=dxfEstimateRaw(g);
+  const vf=dxfCfg.vendor[g.ven]||1;
+  const scaled=e.raw*dxfCfg.scale*vf;
+  const unit=round1000(Math.max(scaled, dxfCfg.floor));
+  return Object.assign(e,{vf,scaled,unit,total:unit*g.qty});
+}
+function renderBreak(){
+  if(!$('dxfMain') || $('dxfMain').style.display==='none') return;
+  const g=dxfGeom(), e=dxfEstimate(g);
+  const row=(k,v,s,cls)=>`<tr${cls?' class="'+cls+'"':''}><td>${k}${s?` <span class="sub">${s}</span>`:''}</td><td class="r">${v}</td></tr>`;
+  $('dxfBreak').innerHTML=
+    row('자재비', won(Math.round(e.matCost))+'원', (g.mat||'?')+' '+(g.thk||0)+'T · '+won(Math.round(g.w))+'×'+won(Math.round(g.h))+'mm × 사용률'+Math.round((g.util||1)*100)+'%')+
+    row('레이저 절단', won(Math.round(e.cutCost))+'원', '구멍 '+g.pierce+'개('+won(e.pierceCost)+') + 길이 '+won(Math.round(g.cut))+'mm('+won(Math.round(e.lineCost))+') · '+(g.thk||0)+'T대')+
+    row('절곡', won(Math.round(e.bendCost))+'원', g.bend+'회 × '+won(dxfCfg.bend))+
+    (e.weld?row('용접·후처리', won(e.weld)+'원',''):'')+
+    row('보정', '×'+(dxfCfg.scale*e.vf).toFixed(2), '전역 ×'+dxfCfg.scale.toFixed(2)+(e.vf!==1?(' · 업체 ×'+e.vf.toFixed(2)):''))+
+    row('추정 단가 / 1개', '<b>'+won(e.unit)+'원</b>', g.qty>1?('합계 '+won(e.total)+'원 (×'+g.qty+')'):'', 'tot');
+}
+
+/* ---- 미리보기 SVG (절단 레이어 기준, 무시 레이어 제외) ---- */
+function renderDxfPreview(){
+  const sv=$('dxfPreview'); if(!sv) return;
+  const m=dxfCutBox;
+  if(!m || !isFinite(m.w) || m.w<=0 || !dxfPolys.length){ sv.innerHTML=''; sv.setAttribute('viewBox','0 0 100 100'); return; }
+  const pad=(Math.max(m.w,m.h)||10)*0.04+1;
+  const sw=Math.max(m.w,m.h,1)/260;
+  let s='';
+  dxfPolys.forEach(P=>{
+    const cls=dxfLayerClass[P.layer]||'cut';
+    if(cls==='ignore' || P.pts.length<2) return;
+    const d=P.pts.map(p=>p[0].toFixed(2)+','+(-p[1]).toFixed(2)).join(' ');
+    const col=cls==='bend'?'#d33':'#1e3a5f';
+    const dash=cls==='bend'?` stroke-dasharray="${sw*4} ${sw*3}"`:'';
+    s+=`<polyline points="${d}" fill="none" stroke="${col}" stroke-width="${sw}"${dash}/>`;
+  });
+  sv.setAttribute('viewBox', `${m.mnx-pad} ${-(m.mxy+pad)} ${m.w+pad*2} ${m.h+pad*2}`);
+  sv.innerHTML=s;
+}
+
+/* ---- 레이어 분류 (절단/절곡/무시) ---- */
+function classifyLayers(){
+  dxfLayerClass={};
+  const reIgnore=/dim|치수|\btex\b|text|문자|글자|note|주기|hatch|해치|\bcen\b|\bcl\b|center|중심|frame|프레임|배치|title|제목|표제|뷰포트|viewport|defpoints|\bhid\b|hidden|숨은|가상|virtual|phantom|\bdl\b|방향|배관|wall|door|condens|\bequ\b|치수보조|보조선/i;
+  const reBend=/bend|절곡|fold|벤딩|굽힘|성형/i;
+  Object.keys(dxfModel.layers).forEach(n=>{
+    dxfLayerClass[n]= reBend.test(n) ? 'bend' : (reIgnore.test(n) ? 'ignore' : 'cut');
+  });
+}
+function renderLayers(){
+  const ll=$('dxfLayers'); if(!dxfModel){ ll.innerHTML=''; return; }
+  const names=Object.keys(dxfModel.layers).sort();
+  const span={}; dxfPolys.forEach(P=>{ const b=span[P.layer]=span[P.layer]||{mnx:1e18,mxx:-1e18,mny:1e18,mxy:-1e18}; P.pts.forEach(p=>{ if(p[0]<b.mnx)b.mnx=p[0];if(p[0]>b.mxx)b.mxx=p[0];if(p[1]<b.mny)b.mny=p[1];if(p[1]>b.mxy)b.mxy=p[1]; }); });
+  ll.innerHTML=names.length?names.map(n=>{
+    const cnt=dxfModel.layers[n], cls=dxfLayerClass[n]||'cut', b=span[n];
+    const big=b&&isFinite(b.mxx)&&(Math.max(b.mxx-b.mnx,b.mxy-b.mny)>5000);
+    const o=(v,l)=>`<option value="${v}" ${cls===v?'selected':''}>${l}</option>`;
+    return `<label><select data-layer="${esc(n)}" style="width:auto;padding:2px 4px;font-size:11px;">${o('cut','절단')}${o('bend','절곡')}${o('ignore','무시')}</select> <b>${esc(n)}</b> <span class="cnt">(${cnt}개${big?' · ⚠큼':''})</span></label>`;
+  }).join(''):'<span class="cnt">레이어 정보 없음</span>';
+  ll.querySelectorAll('select').forEach(s=>s.addEventListener('change', ()=>{ dxfLayerClass[s.dataset.layer]=s.value; recomputeFromLayers(); renderDxfPreview(); renderBreak(); }));
+}
+function recomputeFromLayers(){
+  let cut=0,pierce=0,bend=0,mnx=1e18,mxx=-1e18,mny=1e18,mxy=-1e18;
+  dxfPolys.forEach(P=>{
+    const cls=dxfLayerClass[P.layer]||'cut';
+    if(cls==='ignore') return;
+    if(cls==='bend'){ bend+=Math.max(1,P.pts.length-1); return; }
+    for(let k=1;k<P.pts.length;k++) cut+=Math.hypot(P.pts[k][0]-P.pts[k-1][0], P.pts[k][1]-P.pts[k-1][1]);
+    if(P.loop) pierce++;
+    P.pts.forEach(p=>{ if(p[0]<mnx)mnx=p[0];if(p[0]>mxx)mxx=p[0];if(p[1]<mny)mny=p[1];if(p[1]>mxy)mxy=p[1]; });
+  });
+  const w=isFinite(mxx)?mxx-mnx:0, h=isFinite(mxy)?mxy-mny:0;
+  $('mCut').value=Math.round(cut); $('mPierce').value=pierce; $('mW').value=Math.round(w); $('mH').value=Math.round(h); $('mBend').value=bend;
+  dxfCutBox={mnx,mxx,mny,mxy,w,h};
+}
+
+/* ---- 파일 로드 ---- */
+function loadDxf(file){
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const txt=String(rd.result);
+      const isGeo=/\.geo$/i.test(file.name) || txt.slice(0,300).indexOf('#~')>=0;
+      if(isGeo){
+        const g=parseGEO(txt);
+        dxfModel={layers:g.layers, ents:[], blocks:{}};
+        dxfPolys=g.polys;
+      } else {
+        dxfModel=dxfParse(txt);
+        dxfPolys=collectPolys(dxfModel);
+      }
+      classifyLayers();
+      const nLayers=Object.keys(dxfModel.layers).length, nIgnore=Object.values(dxfLayerClass).filter(c=>c==='ignore').length;
+      $('dxfFileName').textContent=file.name+(isGeo?' · GEO':'')+' · '+(isGeo?'윤곽':'레이어')+' '+nLayers+(isGeo?'':'개(무시 '+nIgnore+')')+' · 폴리라인 '+dxfPolys.length+'개';
+      // 재질·두께 자동 추정(파일명/레이어)
+      const hay=(file.name+' '+Object.keys(dxfModel.layers).join(' ')).toUpperCase();
+      const mm=hay.match(/\b(SUS|EGI|SS|AL|CR|GI|SK5|PO)\b/); if(mm){ $('dxfMat').value=mm[1]; }
+      const tm=hay.match(/(\d+(?:\.\d+)?)\s*T\b/); if(tm){ $('dxfThk').value=tm[1]; }
+      $('dxfDrop').classList.add('has');
+      $('dxfDrop').innerHTML='📐 <b>'+esc(file.name)+'</b> — 다른 파일을 끌어다 놓거나 클릭해 교체<input type="file" id="dxfFile" accept=".dxf,.geo,application/dxf,image/vnd.dxf" style="display:none;">';
+      bindDxfFile();
+      $('dxfMain').style.display='block';
+      renderLayers(); recomputeFromLayers(); renderDxfPreview(); renderBreak();
+    }catch(err){ alert('DXF를 읽을 수 없습니다: '+err.message); }
+  };
+  rd.readAsText(file);
+}
+function bindDxfFile(){ const f=$('dxfFile'); if(f) f.addEventListener('change', e=>{ if(e.target.files[0]) loadDxf(e.target.files[0]); }); }
+
+/* ---- 단가 설정 표 ---- */
+function renderRates(){
+  const mats=Object.keys(DXF_DENS);
+  let h='<table class="rate-tbl"><tr><th>재질</th><th>밀도(g/cm³)</th><th>자재 kg단가(원)</th></tr>';
+  mats.forEach(m=>{ h+=`<tr><td class="l">${m}</td><td>${DXF_DENS[m]}</td><td><input type="text" data-kg="${m}" value="${won(dxfCfg.kg[m]!=null?dxfCfg.kg[m]:'')}"></td></tr>`; });
+  h+='</table>';
+  h+='<table class="rate-tbl" style="margin-top:8px;"><tr><th>두께대(T 이하)</th><th>절단단가(원/mm)</th><th>피어싱(원/개)</th></tr>';
+  dxfCfg.bands.forEach((b,i)=>{ h+=`<tr><td class="l">${b.max>1e8?'그 이상':b.max}</td><td><input type="text" data-cut="${i}" value="${b.cut}"></td><td><input type="text" data-pierce="${i}" value="${b.pierce}"></td></tr>`; });
+  h+='</table>';
+  h+=`<table class="rate-tbl" style="margin-top:8px;"><tr><th>절곡 1회(원)</th><th>자재 사용률 배수</th><th>최소단가(원)</th><th>전역 보정</th></tr>
+      <tr><td><input type="text" data-bend value="${dxfCfg.bend}"></td><td><input type="text" data-util value="${dxfCfg.util}"></td><td><input type="text" data-floor value="${dxfCfg.floor}"></td><td><input type="text" data-scale value="${dxfCfg.scale}"></td></tr></table>`;
+  $('dxfRateBox').innerHTML=h;
+  $('dxfRateBox').querySelectorAll('input').forEach(inp=>inp.addEventListener('input', readRates));
+}
+function readRates(){
+  $('dxfRateBox').querySelectorAll('[data-kg]').forEach(i=>{ dxfCfg.kg[i.dataset.kg]=numClean(i.value); });
+  $('dxfRateBox').querySelectorAll('[data-cut]').forEach(i=>{ dxfCfg.bands[+i.dataset.cut].cut=numClean(i.value); });
+  $('dxfRateBox').querySelectorAll('[data-pierce]').forEach(i=>{ dxfCfg.bands[+i.dataset.pierce].pierce=numClean(i.value); });
+  const g=s=>$('dxfRateBox').querySelector(s);
+  if(g('[data-bend]')) dxfCfg.bend=numClean(g('[data-bend]').value);
+  if(g('[data-util]')) dxfCfg.util=numClean(g('[data-util]').value)||1;
+  if(g('[data-floor]')) dxfCfg.floor=numClean(g('[data-floor]').value);
+  if(g('[data-scale]')) dxfCfg.scale=numClean(g('[data-scale]').value)||1;
+  renderBreak();
+}
+
+/* ---- 캘리브레이션 ---- */
+function renderCal(){
+  const ss=dxfCfg.samples;
+  let h='<tr><th>도면</th><th>재질</th><th>T</th><th>업체</th><th>실제단가</th><th>추정</th><th>오차</th><th></th></tr>';
+  if(!ss.length){ h+='<tr><td colspan="8" class="l" style="text-align:center;color:var(--sub);padding:10px;">샘플이 없습니다 — 도면을 올리고 실제 단가를 입력해 추가하세요</td></tr>'; }
+  ss.forEach((s,i)=>{
+    const e=dxfEstimate(Object.assign({util:dxfCfg.util},s));
+    const err=s.actual?((e.unit-s.actual)/s.actual*100):0;
+    h+=`<tr><td class="l">${esc(s.name||'-')}</td><td>${esc(s.mat)}</td><td>${s.thk}</td><td class="l">${esc(s.ven||'')}</td><td>${won(s.actual)}</td><td>${won(e.unit)}</td><td style="color:${Math.abs(err)>20?'var(--warn)':'var(--ok)'}">${err>0?'+':''}${err.toFixed(0)}%</td><td><button class="btn btn-sm btn-del" data-calrm="${i}">×</button></td></tr>`;
+  });
+  $('calTbl').innerHTML=h;
+  $('calTbl').querySelectorAll('[data-calrm]').forEach(b=>b.addEventListener('click',()=>{ dxfCfg.samples.splice(+b.dataset.calrm,1); dxfSaveCfg(); renderCal(); }));
+}
+function dxfCalibrate(){
+  const ss=dxfCfg.samples.filter(s=>s.actual>0);
+  if(ss.length<1){ alert('샘플이 없습니다.'); return; }
+  // 1) 전역 배수: scale=1, vendor=1 기준 raw 대비 실제 중앙값
+  dxfCfg.scale=1; dxfCfg.vendor={};
+  const ratios=ss.map(s=>{ const r=dxfEstimateRaw(Object.assign({util:dxfCfg.util},s)).raw; return r>0? s.actual/r : null; }).filter(x=>x!=null);
+  dxfCfg.scale=+(med(ratios)||1).toFixed(3);
+  // 2) 업체별 계수
+  const byv={}; ss.forEach(s=>{ const r=dxfEstimateRaw(Object.assign({util:dxfCfg.util},s)).raw*dxfCfg.scale; if(r>0&&s.ven){ (byv[s.ven]=byv[s.ven]||[]).push(s.actual/r); } });
+  Object.keys(byv).forEach(v=>{ if(byv[v].length>=2){ dxfCfg.vendor[v]=+med(byv[v]).toFixed(3); } });
+  // 3) MAPE
+  let sum=0; ss.forEach(s=>{ const e=dxfEstimate(Object.assign({util:dxfCfg.util},s)); sum+=Math.abs(e.unit-s.actual)/s.actual; });
+  const mape=sum/ss.length*100;
+  const el=$('calMape'); el.textContent='보정 완료 · 전역 ×'+dxfCfg.scale+' · MAPE '+mape.toFixed(1)+'% ('+ss.length+'건)';
+  el.classList.toggle('bad', mape>15);
+  dxfSaveCfg(); renderRates(); renderCal(); renderBreak();
+}
+
+/* ---- 견적 입력/견적서 연결 ---- */
+function dxfAutoSpec(g){
+  let s=(g.mat||'')+(g.thk%1===0?g.thk:g.thk)+'T';
+  if(g.w&&g.h) s+=' '+Math.round(g.w)+'×'+Math.round(g.h);
+  if(g.qty>1) s+=' ('+g.qty+'EA)';
+  return s.trim();
+}
+function dxfInit(){
+  // 재질 select
+  fill($('dxfMat'), Object.keys(DXF_DENS), '재질 선택'); $('dxfMat').value='SS';
+  // 업체 select (이력 기반)
+  const vs=[...new Set(DATA.filter(r=>r.v).map(r=>r.v))].sort((a,b)=>a.localeCompare(b,'ko'));
+  fill($('dxfVen'), vs, '(공통)');
+  // 드롭존
+  const dz=$('dxfDrop');
+  dz.addEventListener('click', ()=>$('dxfFile') && $('dxfFile').click());
+  ;['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev, e=>{ e.preventDefault(); dz.classList.add('drag'); }));
+  ;['dragleave','drop'].forEach(ev=>dz.addEventListener(ev, e=>{ e.preventDefault(); dz.classList.remove('drag'); }));
+  dz.addEventListener('drop', e=>{ const f=e.dataTransfer.files[0]; if(f) loadDxf(f); });
+  bindDxfFile();
+  // 지표/조건 변경 → 재계산
+  ['mCut','mPierce','mW','mH','mBend','mQty','dxfThk','dxfWeld'].forEach(id=>$(id).addEventListener('input', renderBreak));
+  ['dxfMat','dxfVen'].forEach(id=>$(id).addEventListener('change', renderBreak));
+  // 접이식
+  document.querySelectorAll('.fold-h').forEach(h=>h.addEventListener('click', ()=>{ const b=$(h.dataset.fold); const open=b.classList.toggle('open'); h.textContent=(open?'▾':'▸')+h.textContent.slice(1); }));
+  // 채우기 / 추가
+  $('dxfApply').addEventListener('click', ()=>{
+    const g=dxfGeom(), e=dxfEstimate(g);
+    const famOpt=[...$('fam').options].some(o=>o.value===g.mat);
+    if(famOpt){ $('fam').value=g.mat; rebuildThk(); if([...$('thk').options].some(o=>o.value==g.thk)) $('thk').value=g.thk; }
+    $('qtyin').value=g.qty.toLocaleString('ko-KR');
+    $('sagup').checked=false; $('jcin').value=Math.round(e.matCost).toLocaleString('ko-KR');
+    $('specin').value=dxfAutoSpec(g); specTouched=true;
+    if(g.ven && !$('qVendor').value){ $('qVendor').value=g.ven; renderSheet(); }
+    lastPicked=null; calc();
+    // 추정 단가를 직접 반영(이력추정 대신)
+    if(lastCalc){ lastCalc.unit=e.unit; lastCalc.mc=Math.round(e.matCost); lastCalc.pc=e.unit-Math.round(e.matCost); }
+    document.querySelector('.panel').scrollIntoView({behavior:'smooth',block:'start'});
+  });
+  $('dxfAddDraft').addEventListener('click', ()=>{
+    const g=dxfGeom(), e=dxfEstimate(g);
+    const mc=Math.round(e.matCost), pc=Math.max(0,e.unit-mc);
+    draft.push({ spec:dxfAutoSpec(g), unit:e.unit, qty:g.qty, rmk:'DXF 추정'+(g.bend?(' · 절곡'+g.bend):''), mc, pc, baseUnit:e.unit, sagup:false });
+    if(g.ven && !$('qVendor').value) $('qVendor').value=g.ven;
+    renderDraft();
+    document.getElementById('draftBody').scrollIntoView({behavior:'smooth',block:'center'});
+  });
+  // 단가표
+  renderRates();
+  $('dxfRateSave').addEventListener('click', ()=>{ readRates(); dxfSaveCfg(); alert('단가를 저장했습니다.'); });
+  $('dxfRateReset').addEventListener('click', ()=>{ if(confirm('단가를 기본값으로 되돌릴까요?')){ const s=dxfCfg.samples; dxfCfg=dxfDefaults(); dxfCfg.samples=s; dxfSaveCfg(); renderRates(); renderBreak(); } });
+  // 캘리브레이션
+  $('calAdd').addEventListener('click', ()=>{
+    if(!dxfModel){ alert('먼저 DXF 도면을 올려주세요.'); return; }
+    const actual=numClean($('calActual').value);
+    if(!actual){ alert('실제 단가를 입력해 주세요.'); $('calActual').focus(); return; }
+    const g=dxfGeom();
+    dxfCfg.samples.push({ name:($('dxfFileName').textContent||'').split(' · ')[0], cut:g.cut,pierce:g.pierce,w:g.w,h:g.h,bend:g.bend,qty:g.qty,mat:g.mat,thk:g.thk,ven:g.ven,weld:g.weld, actual });
+    dxfSaveCfg(); $('calActual').value=''; renderCal();
+  });
+  $('calRun').addEventListener('click', dxfCalibrate);
+  renderCal();
+}
+
+/* ---------- 초기화 ---------- */
+function init(){
+  const fams=[...new Set(DATA.filter(r=>r.f).map(r=>r.f))].sort();
+  fill($('fam'), fams, '전체');
+  if(fams.includes('SS')) $('fam').value='SS';
+  rebuildThk();
+  const byv={};
+  DATA.forEach(r=>{ if(!r.v) return; (byv[r.v]=byv[r.v]||{n:0,last:''}); byv[r.v].n++; if((r.d||'')>byv[r.v].last) byv[r.v].last=r.d||''; });
+  const vs=Object.keys(byv).sort((a,b)=>a.localeCompare(b,'ko'));
+  fill($('ven'), vs, '전체');
+  $('venList').innerHTML=vs.map(v=>`<option value="${esc(v)}">`).join('');
+  const today=new Date();
+  const ts=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  $('qDate').value=ts; $('dDate').value=ts;
+  $('specin').value=autoSpec();
+  renderHist(); calc(); renderDraft(); renderDs(); renderSaved();
+  dxfInit();
+}
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+# OS / 임시 파일
+Thumbs.db
+.DS_Store
+*.tmp
