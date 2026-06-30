@@ -2,3 +2,11 @@
 Thumbs.db
 .DS_Store
 *.tmp
+
+# 백업/데이터 추출 임시
+*_backup_*.html
+*.dwg
+*.dxf
+*.geo
+*.GEO
+_*.json
