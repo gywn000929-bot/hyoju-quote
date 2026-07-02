@@ -264,6 +264,7 @@
 
   <div class="panel">
     <h2><span class="tag">2</span>선택 조건의 견적 이력 <span class="cnt" id="histCnt"></span></h2>
+    <div style="margin-bottom:8px;"><input type="text" id="histQ" placeholder="🔍 품번·규격·품명·업체 검색 — 예: MS26-00076, 110922, DISK, SS 3.2" style="max-width:420px;"></div>
     <div class="scroll">
       <table class="ui">
         <thead><tr><th>견적일</th><th>업체</th><th>규격 (원문)</th><th style="text-align:right">자재</th><th style="text-align:right">가공</th><th style="text-align:right">단가</th><th style="text-align:right">수량</th><th style="text-align:right">합계</th></tr></thead>
@@ -271,6 +272,12 @@
       </table>
     </div>
     <p class="cnt" style="margin-top:6px;">행을 클릭하면 그 단가·수량이 위 입력에 채워집니다. 자재/가공 칸은 단가 분해가 기록된 경우만 표시됩니다.</p>
+    <div class="actions">
+      <button class="btn btn-ghost btn-sm" id="histExport">📤 내 저장 견적 내보내기</button>
+      <button class="btn btn-ghost btn-sm" id="histImportBtn">📥 다른 담당자 견적 가져오기</button>
+      <input type="file" id="histImportFile" accept=".json" style="display:none;">
+      <span class="cnt">담당자별로 쌓인 견적(JSON)을 주고받아 이력을 합칠 수 있습니다.</span>
+    </div>
   </div>
 
   <div class="panel">
@@ -439,9 +446,15 @@ function autoSpec(){
 let specTouched=false;
 
 function renderHist(){
-  const rows=filtered();
+  let rows=filtered();
+  // 텍스트 검색 (품번·규격·품명·업체) — 검색어가 있으면 재질/두께 필터를 무시하고 전체에서 찾음
+  const q=norm(($('histQ')&&$('histQ').value)||'');
+  if(q){
+    const v=$('ven').value;
+    rows=DATA.filter(r=>(!v||r.v===v)&&(norm(r.m).includes(q)||(r.v&&norm(r.v).includes(q))));
+  }
   const sorted=[...rows].sort((a,b)=>(b.d||'').localeCompare(a.d||''));
-  $('histCnt').textContent='— '+rows.length+'건 · 최신순';
+  $('histCnt').textContent='— '+rows.length+'건'+(q?' · "'+$('histQ').value.trim()+'" 검색':'')+' · 최신순';
   $('histBody').innerHTML=sorted.length?sorted.slice(0,300).map((r,i)=>`
     <tr class="pick" data-pi="${i}" style="cursor:pointer;">
       <td>${r.d||''}</td><td>${esc(r.v)}</td><td>${esc(r.m)}${r.nt?'<div class="cnt">메모: '+esc(r.nt).slice(0,40)+'</div>':''}</td>
@@ -581,6 +594,45 @@ $('specin').addEventListener('input', ()=>{ specTouched=true; calc(); });
   const v=e.target.value.replace(/[^0-9]/g,''); e.target.value=v?parseInt(v,10).toLocaleString('ko-KR'):'';
   lastPicked=null; calc();
 }); });
+
+/* ---- 이력 검색 + 내보내기/가져오기 ---- */
+if($('histQ')) $('histQ').addEventListener('input', renderHist);
+function importQuotes(arr){
+  if(!Array.isArray(arr)) throw new Error('JSON 배열이 아닙니다');
+  const cur=loadSavedQuotes();
+  const seen=new Set([...cur,...DATA].map(r=>(r.v||'')+'|'+(r.d||'')+'|'+(r.m||'')+'|'+r.h));
+  let n=0;
+  arr.forEach(r=>{
+    if(!r || typeof r.h!=='number' || !r.m) return;
+    const k=(r.v||'')+'|'+(r.d||'')+'|'+(r.m||'')+'|'+r.h;
+    if(seen.has(k)) return;
+    seen.add(k); r._saved=true; cur.push(r); DATA.push(r); n++;
+  });
+  try{ localStorage.setItem(QLOG_LS, JSON.stringify(cur)); }catch(e){}
+  renderHist();
+  return n;
+}
+if($('histExport')) $('histExport').addEventListener('click', ()=>{
+  const a=loadSavedQuotes();
+  if(!a.length){ alert('이 PC에 저장된 견적이 없습니다.\n(위에서 [견적 결정]을 누르면 자동 저장됩니다)'); return; }
+  const blob=new Blob([JSON.stringify(a,null,1)],{type:'application/json'});
+  const el=document.createElement('a');
+  el.href=URL.createObjectURL(blob);
+  el.download='효주견적_저장분_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.json';
+  document.body.appendChild(el); el.click(); el.remove();
+  setTimeout(()=>URL.revokeObjectURL(el.href), 5000);
+});
+if($('histImportBtn')) $('histImportBtn').addEventListener('click', ()=>$('histImportFile').click());
+if($('histImportFile')) $('histImportFile').addEventListener('change', e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{ const n=importQuotes(JSON.parse(rd.result)); alert('가져오기 완료: 신규 '+n+'건 (중복 제외)'); }
+    catch(err){ alert('가져오기 실패: '+err.message); }
+    e.target.value='';
+  };
+  rd.readAsText(f);
+});
 
 /* ---------- 견적서 작성 ---------- */
 let draft=[];
