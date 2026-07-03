@@ -45,6 +45,8 @@
   .stat.hero .v{color:#fff; font-size:22px;}
   .stat.good{background:var(--ok-bg);}
   .stat.good .v{color:var(--ok);}
+  .stat.warn{background:var(--warn-bg); border:1px solid var(--warn);}
+  .stat.warn .v{color:var(--warn);}
   .note{font-size:12px; color:var(--warn); background:var(--warn-bg); border-radius:7px; padding:9px 12px; margin-top:12px; display:none;}
   .note.show{display:block;}
   .actions{margin-top:14px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
@@ -484,6 +486,8 @@ const RATE_MULT_N={"AL|1.0":20,"AL|1.5":28,"AL|2.0":41,"AL|2.5":8,"AL|3.0":37,"A
 // 자재비 2구간 배수 [임계자재비, 소형배수, 대형배수] — 단가=자재비×(소형/대형 배수). 홀드아웃 14% (단일배수 18%)
 const RATE_BAND={"AL|1.0":[73500,2.72,3.45],"AL|1.5":[122500,2.47,2.46],"AL|2.0":[70000,1.83,1.53],"AL|3.0":[115000,1.64,1.16],"AL|4.0":[107500,1.38,1.21],"AL|5.0":[102500,1.67,1.11],"CR|1.0":[9000,2.6,2.29],"CR|1.2":[82500,2.06,1.47],"GI|1.6":[65000,2.01,1.43],"GI|2.0":[292500,1.3,1.36],"PO|1.6":[84000,1.49,1.56],"PO|2.0":[11000,3,1.41],"PO|3.0":[38000,2.63,1.47],"SS|1.6":[32000,2,1.56],"SS|2.0":[24500,2,1.52],"SS|2.3":[45000,1.9,1.54],"SS|3.0":[36000,2,1.58],"SS|3.2":[65000,1.93,1.34],"SS|4.0":[40000,2,1.57],"SS|4.5":[60000,1.88,1.52],"SS|5.0":[19000,2,1.44],"SS|6.0":[85000,1.67,1.39],"SS|8.0":[48000,1.65,1.38],"SS|9.0":[75000,1.67,1.41],"SS|10.0":[52500,1.6,1.31],"SS|12.0":[83500,1.52,1.3],"SS|15.0":[132500,1.39,1.16],"SS|16.0":[125000,1.43,1.21],"SS|20.0":[240000,1.32,1.16],"SUS|1.0":[30000,2,1.46],"SUS|1.2":[95000,2,1.18],"SUS|1.5":[57500,1.59,1.36],"SUS|2.0":[45000,1.8,1.27],"SUS|3.0":[90000,1.6,1.18],"SUS|4.0":[62500,1.7,1.38],"SUS|5.0":[50000,1.69,1.21],"SUS|6.0":[305000,1.45,1.12],"SUS|8.0":[105000,1.45,1.25],"SUS|10.0":[60000,1.53,1.15],"SUS|12.0":[120000,1.56,1.23],"SUS|15.0":[480000,1.24,1.17]};
 const RATE_BAND_FAM={"AL":[90000,1.81,1.5],"CR":[27000,2.33,1.76],"GI":[125000,1.87,1.37],"PO":[32500,2.6,1.56],"SS":[60000,1.83,1.38],"SUS":[60000,1.67,1.23]};
+// 소형·박판 부품 단가 하한(안전 backstop). 절대 정밀 추정이 아니라 터무니없이 낮은 값 차단용.
+const MIN_LASER_UNIT=300;
 function tKey(t){ return (t%1===0)?t.toFixed(1):String(t); }
 function priceMult(f,t,jc){
   jc=jc||0;
@@ -524,7 +528,9 @@ function calc(){
   lastCalc=null; $('decideBtn').disabled=true;
 
   const rows=filtered();
+  const vsel=$('ven').value; const vN = vsel? DATA.reduce((a,r)=>a+(r.v===vsel?1:0),0) : null;
   let unit=null, unitSrc='', mc=null, pc=null;
+  let laborDom=false, warnMsg='', bandN=0, bandLbl='';
 
   // 이력 행 클릭으로 선택된 경우 최우선
   if(lastPicked && norm($('specin').value)===norm(lastPicked.m)){
@@ -542,8 +548,16 @@ function calc(){
     } else if(jc!==null || sizeJc!==null){
       const useJc=(jc!==null)?jc:sizeJc;
       const {mult,n,lbl}=priceMult(f,t,useJc);
+      bandN=n||0; bandLbl=lbl||'';
       unit=round1000(useJc*mult); mc=useJc; pc=Math.max(0,unit-useJc);
       unitSrc='자재비 '+won(useJc)+(jc===null?' (크기 '+won(w)+'×'+won(h)+'mm)':'')+' × 배수 '+mult.toFixed(2)+' ('+lbl+(n?(' '+n+'건'):' 추정')+')';
+      // 가공비 지배(소형·박판·박판다수량) 감지 — 배수모델이 실제보다 크게 과소평가하는 구간
+      const area=(w>0&&h>0)?w*h:null;
+      laborDom = (t!=null&&t<=1.0) || (area!=null&&area<30000) || (useJc<4000);
+      if(laborDom){
+        if(unit<MIN_LASER_UNIT){ unit=MIN_LASER_UNIT; pc=Math.max(0,unit-useJc); unitSrc+=' · 최소하한 '+won(MIN_LASER_UNIT)+'원 적용'; }
+        warnMsg='⚠ 소형·박판 부품 — 레이저 가공비가 자재비보다 커서 배수추정이 실제보다 크게 낮을 수 있습니다(실측 예: 판스프링 SUS 0.5T 100EA → 추정 ~2,500원 vs 실제 32,000원). 사장님 확인 또는 아래 이력에서 유사 소형부품을 클릭해 적용하세요.';
+      }
     } else {
       const units=rows.map(unitOf).filter(isNum);
       if(units.length){ unit=Math.round(med(units)); unitSrc='이력 단가 중앙값 ('+units.length+'건)'; }
@@ -553,24 +567,42 @@ function calc(){
     band.innerHTML='<div class="empty">재질을 선택하거나 자재비를 입력하면 추천 단가가 표시됩니다</div>';
     return;
   }
+  // ── 신뢰도 판정 (롱테일·근거 부족 시 명시) ──
+  let conf='보통', confCls='', confWhy='';
+  if(unitSrc.startsWith('이력 단가 (')){ conf='높음'; confCls='good'; confWhy='과거 동일 견적 매칭'; }
+  else if(laborDom){ conf='낮음'; confCls='warn'; confWhy='소형·박판 = 가공비 지배'; }
+  else if(unitSrc.indexOf('중앙값')>=0){
+    conf = rows.length>=15?'높음':(rows.length>=5?'보통':'낮음');
+    confCls = conf==='높음'?'good':(conf==='낮음'?'warn':''); confWhy='이력 '+rows.length+'건 중앙값';
+  } else if(unitSrc.startsWith('자재비')){
+    if(bandLbl.indexOf('전체평균')>=0){ conf='낮음'; confCls='warn'; confWhy='재질 이력 부족 → 전체평균 배수'; }
+    else if(bandLbl.indexOf('재질군')>=0){ conf='낮음'; confCls='warn'; confWhy='두께 이력 부족 → 재질군 배수'; }
+    else { conf=bandN>=30?'보통':'낮음'; confCls=conf==='낮음'?'warn':''; confWhy='재질·두께 배수'+(bandN?' '+bandN+'건':''); }
+  }
+  if(vsel && vN!=null && vN<5 && !unitSrc.startsWith('이력 단가 (')){
+    if(conf==='높음'){ conf='보통'; confCls=''; } else if(conf==='보통'){ conf='낮음'; confCls='warn'; }
+    confWhy += (confWhy?' · ':'')+'이 업체 이력 '+vN+'건';
+  }
   const total=unit*qty;
   function stat(k,v,s,cls){ return `<div class="stat${cls?' '+cls:''}"><div class="k">${k}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:''}</div>`; }
   band.innerHTML=
-    stat('단가 / 1개', won(unit)+'원', unitSrc, unitSrc.startsWith('이력 단가 (')?'good':'')+
+    stat('단가 / 1개', won(unit)+'원', unitSrc, unitSrc.startsWith('이력 단가 (')?'good':(laborDom?'warn':''))+
+    stat('신뢰도', conf, confWhy, confCls)+
     stat('수량', won(qty), '')+
     stat('추천 합계', won(total)+'원', isSagup?'자재 사급 — 가공비만':'단가 × 수량', 'hero');
 
   const units=rows.map(unitOf).filter(isNum);
+  let noteMsg=warnMsg;
   if(units.length>=2){
     const mn=Math.min(...units), mx=Math.max(...units);
     if(mx/Math.max(mn,1)>=3 && !unitSrc.startsWith('이력 단가 (')){
-      note.textContent='⚠ 이 조건의 이력 단가가 '+won(mn)+'~'+won(mx)+'원으로 편차가 큽니다. 도면 크기·가공범위를 확인하고 아래 이력에서 비슷한 건을 클릭해 적용하세요.';
-      note.classList.add('show');
+      const vm='⚠ 이 조건의 이력 단가가 '+won(mn)+'~'+won(mx)+'원으로 편차가 큽니다. 도면 크기·가공범위를 확인하고 아래 이력에서 비슷한 건을 클릭해 적용하세요.';
+      noteMsg = noteMsg ? (noteMsg+'　'+vm) : vm;
     }
-  } else if(rows.length<3){
-    note.textContent='⚠ 선택 조건의 이력이 '+rows.length+'건뿐이라 추정 신뢰도가 낮습니다.';
-    note.classList.add('show');
+  } else if(rows.length<3 && !noteMsg){
+    noteMsg='⚠ 선택 조건의 이력이 '+rows.length+'건뿐이라 추정 신뢰도가 낮습니다.';
   }
+  if(noteMsg){ note.textContent=noteMsg; note.classList.add('show'); }
   lastCalc={spec:$('specin').value.trim(), unit, qty, mc, pc, sagup:isSagup};
   $('decideBtn').disabled=false;
 }
