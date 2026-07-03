@@ -488,6 +488,9 @@ const RATE_BAND={"AL|1.0":[73500,2.72,3.45],"AL|1.5":[122500,2.47,2.46],"AL|2.0"
 const RATE_BAND_FAM={"AL":[90000,1.81,1.5],"CR":[27000,2.33,1.76],"GI":[125000,1.87,1.37],"PO":[32500,2.6,1.56],"SS":[60000,1.83,1.38],"SUS":[60000,1.67,1.23]};
 // 소형·박판 부품 단가 하한(안전 backstop). 절대 정밀 추정이 아니라 터무니없이 낮은 값 차단용.
 const MIN_LASER_UNIT=300;
+// 업체계수: 실단가÷일반모델추정 중앙비(형상은 자재비로 정규화됨). 표본 8~15건이라 노이즈방지 ×0.7 축소 반영.
+// 배수(자재비×배수) 추정 경로에서만 적용 — 이력매칭 경로는 이미 그 업체 실단가라 미적용.
+const VENDOR_COEF={"ISL계기":1.33,"진사이언스":1.28,"MK테크":1.22,"금성정밀":1.21,"웰드웰":1.20};
 function tKey(t){ return (t%1===0)?t.toFixed(1):String(t); }
 function priceMult(f,t,jc){
   jc=jc||0;
@@ -557,6 +560,12 @@ function calc(){
       if(laborDom){
         if(unit<MIN_LASER_UNIT){ unit=MIN_LASER_UNIT; pc=Math.max(0,unit-useJc); unitSrc+=' · 최소하한 '+won(MIN_LASER_UNIT)+'원 적용'; }
         warnMsg='⚠ 소형·박판 부품 — 레이저 가공비가 자재비보다 커서 배수추정이 실제보다 크게 낮을 수 있습니다(실측 예: 판스프링 SUS 0.5T 100EA → 추정 ~2,500원 vs 실제 32,000원). 사장님 확인 또는 아래 이력에서 유사 소형부품을 클릭해 적용하세요.';
+      }
+      // 업체계수(프리미엄 업체) — 배수 추정에만 적용
+      if(vsel && VENDOR_COEF[vsel]){
+        const vc=VENDOR_COEF[vsel];
+        unit=round1000(unit*vc); pc=Math.max(0,unit-useJc);
+        unitSrc+=' · '+vsel+' 업체계수 ×'+vc.toFixed(2);
       }
     } else {
       const units=rows.map(unitOf).filter(isNum);
