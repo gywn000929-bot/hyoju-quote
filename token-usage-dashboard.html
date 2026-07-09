@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>클로드 사용량 대시보드</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#ffffff; --ink:#1a1c1f; --muted:#6b7280;
+    --line:#e5e7eb; --brand:#c2603f; --brand2:#d98a5b;
+    --ok:#2f855a; --accent:#3b6cb7; --shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);
+    --c1:#c2603f; --c2:#3b6cb7; --c3:#2f855a; --c4:#8b5cf6; --c5:#d69e2e; --c6:#0891b2; --c7:#db2777;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#16181c; --card:#1f2228; --ink:#e8eaed; --muted:#9aa0a9;
+      --line:#2c313a; --brand:#e0855f; --brand2:#c2603f;
+      --shadow:0 1px 3px rgba(0,0,0,.3),0 4px 18px rgba(0,0,0,.25);
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 20px 80px}
+  header h1{font-size:24px;margin:0 0 4px;letter-spacing:-.02em}
+  header p{margin:0;color:var(--muted);font-size:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:20px;margin-top:20px}
+  .card h2{font-size:15px;margin:0 0 14px;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+  .steps{font-size:13.5px;color:var(--muted)}
+  .steps ol{margin:8px 0 0;padding-left:20px}
+  .steps li{margin:6px 0}
+  code,.cmd{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12.5px}
+  .cmd{display:flex;align-items:center;gap:10px;background:rgba(127,127,127,.09);border:1px solid var(--line);
+    border-radius:9px;padding:9px 12px;margin:8px 0;overflow-x:auto;white-space:nowrap}
+  .cmd span{color:var(--brand);user-select:all}
+  .copy{margin-left:auto;flex:none;border:1px solid var(--line);background:var(--card);color:var(--ink);
+    border-radius:7px;padding:4px 9px;font-size:11.5px;cursor:pointer}
+  .copy:hover{border-color:var(--brand)}
+  .drop{border:2px dashed var(--line);border-radius:12px;padding:26px;text-align:center;color:var(--muted);
+    cursor:pointer;transition:.15s;font-size:14px}
+  .drop:hover,.drop.hot{border-color:var(--brand);color:var(--brand);background:rgba(194,96,63,.04)}
+  textarea{width:100%;min-height:96px;margin-top:12px;border:1px solid var(--line);border-radius:10px;
+    padding:11px 13px;font-family:"SF Mono",ui-monospace,monospace;font-size:12px;background:var(--bg);color:var(--ink);resize:vertical}
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  button.btn{border:none;border-radius:9px;padding:10px 18px;font-size:13.5px;font-weight:600;cursor:pointer}
+  .btn.primary{background:var(--brand);color:#fff}
+  .btn.primary:hover{filter:brightness(1.05)}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+  .btn.ghost:hover{border-color:var(--brand);color:var(--brand)}
+  .err{color:#c53030;font-size:13px;margin-top:10px;display:none}
+  #results{display:none}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px 16px}
+  .stat .k{font-size:12px;color:var(--muted);margin-bottom:5px}
+  .stat .v{font-size:22px;font-weight:700;letter-spacing:-.02em}
+  .stat .sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .note{font-size:12.5px;color:var(--muted);background:rgba(214,158,46,.1);border:1px solid rgba(214,158,46,.28);
+    border-radius:9px;padding:9px 12px;margin-top:14px}
+  .barwrap{overflow-x:auto}
+  svg{display:block;max-width:100%}
+  .toggle{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-left:auto}
+  .toggle button{border:none;background:var(--card);color:var(--muted);padding:5px 12px;font-size:12px;cursor:pointer}
+  .toggle button.on{background:var(--brand);color:#fff}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px}
+  th,td{text-align:right;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--muted);font-weight:600;font-size:12px;cursor:pointer;user-select:none}
+  th:hover{color:var(--brand)}
+  tbody tr:hover{background:rgba(127,127,127,.05)}
+  .tblwrap{overflow-x:auto}
+  .legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px;font-size:12.5px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:11px;height:11px;border-radius:3px;flex:none}
+  .modelrow{display:flex;align-items:center;gap:10px;margin:9px 0;font-size:13px}
+  .modelrow .name{width:170px;flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .track{flex:1;height:9px;background:rgba(127,127,127,.12);border-radius:5px;overflow:hidden}
+  .track i{display:block;height:100%;border-radius:5px}
+  .modelrow .amt{width:110px;flex:none;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
+  .foot{text-align:center;color:var(--muted);font-size:12px;margin-top:26px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🪙 클로드 사용량 대시보드</h1>
+    <p>ccusage가 뽑아준 JSON을 올리면 어디에 얼마나 썼는지 분석해 드립니다 · 파일 하나로 완결, 인터넷 불필요</p>
+  </header>
+
+  <div class="card">
+    <h2>① 터미널에서 사용량 데이터 뽑기</h2>
+    <div class="steps">
+      아래 명령어 중 하나를 터미널에 붙여넣어 실행하면 <code>usage.json</code> 파일이 만들어져요.
+      <div class="cmd"><span>npx ccusage@latest daily --json &gt; usage.json</span><button class="copy" data-c="npx ccusage@latest daily --json > usage.json">복사</button></div>
+      <div class="cmd"><span>npx ccusage@latest session --json &gt; usage.json</span><button class="copy" data-c="npx ccusage@latest session --json > usage.json">복사</button></div>
+      <div class="cmd"><span>npx ccusage@latest monthly --json &gt; usage.json</span><button class="copy" data-c="npx ccusage@latest monthly --json > usage.json">복사</button></div>
+      <div style="margin-top:6px">daily(날짜별) · session(프로젝트별) · monthly(월별) — 셋 다 이 대시보드에서 열립니다.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>② JSON 올리기</h2>
+    <div class="drop" id="drop">📂 여기에 <b>usage.json</b> 파일을 끌어다 놓거나, 클릭해서 선택하세요</div>
+    <input type="file" id="file" accept=".json,application/json" hidden>
+    <textarea id="paste" placeholder="또는 JSON 내용을 여기에 붙여넣으세요…"></textarea>
+    <div class="row">
+      <button class="btn primary" id="analyze">분석하기</button>
+      <button class="btn ghost" id="sample">예시로 먼저 보기</button>
+    </div>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div id="results">
+    <div class="card">
+      <h2 id="sumTitle">한눈에 보기</h2>
+      <div class="cards" id="stats"></div>
+      <div class="note">💡 <b>구독제(Pro/Max) 참고:</b> 아래 금액($)은 “같은 양을 API로 썼다면” 기준의 <b>추정치</b>입니다. 월정액이라 실제 청구액은 아니지만, <b>어디에 토큰을 몰아 썼는지</b> 비교하는 데는 정확해요.</div>
+    </div>
+
+    <div class="card">
+      <h2>기간별 추이 <span class="toggle" id="metricToggle"><button data-m="cost" class="on">비용</button><button data-m="tokens">토큰</button></span></h2>
+      <div class="barwrap"><svg id="bars" width="1040" height="260" role="img"></svg></div>
+    </div>
+
+    <div class="card">
+      <h2>모델별 사용량</h2>
+      <div id="models"></div>
+    </div>
+
+    <div class="card">
+      <h2>토큰 구성</h2>
+      <div id="tokenmix"></div>
+      <div class="legend" id="mixLegend"></div>
+    </div>
+
+    <div class="card">
+      <h2>상세 내역 <span style="font-size:12px;color:var(--muted);font-weight:400">(제목 클릭 시 정렬)</span></h2>
+      <div class="tblwrap"><table id="tbl"><thead></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="foot">토큰은 브라우저 안에서만 처리되며 어디로도 전송되지 않습니다.</div>
+</div>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const fmt=n=>Math.round(n||0).toLocaleString('ko-KR');
+const money=n=>'$'+(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:(n<1?4:2)});
+const COLORS=['#c2603f','#3b6cb7','#2f855a','#8b5cf6','#d69e2e','#0891b2','#db2777','#65a30d'];
+
+// ---- 다양한 ccusage 스키마에 대응하는 방어적 필드 접근 ----
+const pick=(o,keys)=>{for(const k of keys){if(o&&o[k]!=null)return o[k];}return 0;};
+const numTokens=o=>({
+  input:pick(o,['inputTokens','input_tokens','input']),
+  output:pick(o,['outputTokens','output_tokens','output']),
+  cacheCreate:pick(o,['cacheCreationTokens','cacheCreationInputTokens','cache_creation_tokens','cacheCreation']),
+  cacheRead:pick(o,['cacheReadTokens','cacheReadInputTokens','cache_read_tokens','cacheRead']),
+});
+const rowCost=o=>Number(pick(o,['totalCost','cost','costUSD','totalCostUsd']))||0;
+const rowLabel=o=>String(pick(o,['date','month','week','sessionId','session','project','projectPath','lastActivity'])||'—');
+const modelName=o=>String(pick(o,['modelName','model','name'])||'unknown').replace(/^.*\//,'');
+
+function normalize(json){
+  let arr=null,kind='항목';
+  if(Array.isArray(json)) arr=json;
+  else if(json.daily){arr=json.daily;kind='날짜';}
+  else if(json.sessions){arr=json.sessions;kind='세션';}
+  else if(json.monthly){arr=json.monthly;kind='월';}
+  else if(json.weekly){arr=json.weekly;kind='주';}
+  else {for(const k in json){if(Array.isArray(json[k])){arr=json[k];break;}}}
+  if(!Array.isArray(arr)||!arr.length) throw new Error('사용량 배열을 찾지 못했어요. ccusage가 만든 JSON이 맞는지 확인해 주세요.');
+
+  const rows=arr.map(r=>{
+    const t=numTokens(r);
+    const mb=pick(r,['modelBreakdowns','modelBreakdown','models'])||[];
+    const models=Array.isArray(mb)?mb.map(m=>{const mt=numTokens(m);return{name:modelName(m),...mt,total:mt.input+mt.output+mt.cacheCreate+mt.cacheRead,cost:rowCost(m)};}):[];
+    return{label:rowLabel(r),...t,total:t.input+t.output+t.cacheCreate+t.cacheRead,cost:rowCost(r),models};
+  });
+  return{rows,kind};
+}
+
+let STATE=null,metric='cost';
+
+function render(data){
+  STATE=data;
+  const {rows,kind}=data;
+  $('#sumTitle').textContent=`한눈에 보기 · 총 ${rows.length}개 ${kind}`;
+
+  const tot=rows.reduce((a,r)=>{a.input+=r.input;a.output+=r.output;a.cacheCreate+=r.cacheCreate;a.cacheRead+=r.cacheRead;a.cost+=r.cost;a.total+=r.total;return a;},
+    {input:0,output:0,cacheCreate:0,cacheRead:0,cost:0,total:0});
+
+  $('#stats').innerHTML=[
+    ['추정 총비용',money(tot.cost),'API 환산 기준'],
+    ['총 토큰',fmt(tot.total),'전체 합계'],
+    ['입력 / 출력',fmt(tot.input)+' / '+fmt(tot.output),'입력·출력 토큰'],
+    ['캐시 읽기',fmt(tot.cacheRead),'재사용된 캐시 토큰'],
+  ].map(([k,v,s])=>`<div class="stat"><div class="k">${k}</div><div class="v">${v}</div><div class="sub">${s}</div></div>`).join('');
+
+  drawBars();
+  drawModels(rows);
+  drawMix(tot);
+  drawTable(rows);
+  $('#results').style.display='block';
+  $('#results').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function drawBars(){
+  const rows=STATE.rows, svg=$('#bars');
+  const W=Math.max(1040, rows.length*46+80), H=260, padL=64,padR=20,padT=16,padB=54;
+  const val=r=>metric==='cost'?r.cost:r.total;
+  const max=Math.max(...rows.map(val),1e-9);
+  const bw=Math.min(38,(W-padL-padR)/rows.length-6);
+  const x=i=>padL+i*((W-padL-padR)/rows.length)+((W-padL-padR)/rows.length-bw)/2;
+  const y=v=>padT+(H-padT-padB)*(1-v/max);
+  let g=`<line x1="${padL}" y1="${H-padB}" x2="${W-padR}" y2="${H-padB}" stroke="var(--line)"/>`;
+  for(let t=0;t<=4;t++){const v=max*t/4,yy=y(v);
+    g+=`<line x1="${padL}" y1="${yy}" x2="${W-padR}" y2="${yy}" stroke="var(--line)" stroke-dasharray="2 4" opacity=".5"/>`;
+    g+=`<text x="${padL-8}" y="${yy+4}" text-anchor="end" font-size="10" fill="var(--muted)">${metric==='cost'?money(v):fmt(v)}</text>`;}
+  rows.forEach((r,i)=>{
+    const v=val(r),h=Math.max(H-padB-y(v),0);
+    g+=`<rect x="${x(i)}" y="${y(v)}" width="${bw}" height="${h}" rx="3" fill="var(--brand)"><title>${r.label}\n${metric==='cost'?money(r.cost):fmt(r.total)+' 토큰'}</title></rect>`;
+    if(rows.length<=40){const lbl=r.label.length>10?r.label.slice(-6):r.label;
+      g+=`<text x="${x(i)+bw/2}" y="${H-padB+16}" text-anchor="end" font-size="9.5" fill="var(--muted)" transform="rotate(-45 ${x(i)+bw/2} ${H-padB+16})">${lbl}</text>`;}
+  });
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.setAttribute('width',W);svg.setAttribute('height',H);
+  svg.innerHTML=g;
+}
+
+function drawModels(rows){
+  const map={};
+  rows.forEach(r=>r.models.forEach(m=>{
+    if(!map[m.name])map[m.name]={name:m.name,total:0,cost:0};
+    map[m.name].total+=m.total;map[m.name].cost+=m.cost;}));
+  let list=Object.values(map).sort((a,b)=>b.cost-a.cost);
+  if(!list.length){$('#models').innerHTML='<div class="steps">모델별 세부 데이터가 JSON에 없어요. (전체 합계만 제공)</div>';return;}
+  const maxC=Math.max(...list.map(m=>m.cost),1e-9);
+  $('#models').innerHTML=list.map((m,i)=>{
+    const c=COLORS[i%COLORS.length];
+    return `<div class="modelrow"><div class="name" title="${m.name}">${m.name}</div>
+      <div class="track"><i style="width:${Math.max(m.cost/maxC*100,1.5)}%;background:${c}"></i></div>
+      <div class="amt">${money(m.cost)}<br><span style="font-size:11px">${fmt(m.total)} tok</span></div></div>`;
+  }).join('');
+}
+
+function drawMix(tot){
+  const parts=[
+    ['입력',tot.input,'#c2603f'],['출력',tot.output,'#3b6cb7'],
+    ['캐시 생성',tot.cacheCreate,'#d69e2e'],['캐시 읽기',tot.cacheRead,'#2f855a'],
+  ];
+  const sum=parts.reduce((a,p)=>a+p[1],0)||1;
+  let x=0,bar='<svg viewBox="0 0 100 12" width="100%" height="20" preserveAspectRatio="none" style="border-radius:6px">';
+  parts.forEach(p=>{const w=p[1]/sum*100;bar+=`<rect x="${x}" y="0" width="${w}" height="12" fill="${p[2]}"><title>${p[0]}: ${fmt(p[1])} (${(w).toFixed(1)}%)</title></rect>`;x+=w;});
+  bar+='</svg>';
+  $('#tokenmix').innerHTML=bar;
+  $('#mixLegend').innerHTML=parts.map(p=>`<span><span class="dot" style="background:${p[2]}"></span>${p[0]} · ${fmt(p[1])} (${(p[1]/sum*100).toFixed(1)}%)</span>`).join('');
+}
+
+let sortKey='label',sortDir=1;
+function drawTable(rows){
+  const cols=[['label','구분'],['input','입력'],['output','출력'],['cacheRead','캐시읽기'],['total','총토큰'],['cost','비용']];
+  $('#tbl thead').innerHTML='<tr>'+cols.map(c=>`<th data-k="${c[0]}">${c[1]}</th>`).join('')+'</tr>';
+  const sorted=[...rows].sort((a,b)=>{const x=a[sortKey],y=b[sortKey];
+    return (typeof x==='number'?x-y:String(x).localeCompare(String(y)))*sortDir;});
+  $('#tbl tbody').innerHTML=sorted.map(r=>`<tr>
+    <td title="${r.label}">${r.label.length>26?'…'+r.label.slice(-24):r.label}</td>
+    <td>${fmt(r.input)}</td><td>${fmt(r.output)}</td><td>${fmt(r.cacheRead)}</td>
+    <td>${fmt(r.total)}</td><td>${money(r.cost)}</td></tr>`).join('');
+  $('#tbl thead').querySelectorAll('th').forEach(th=>th.onclick=()=>{
+    const k=th.dataset.k; if(k===sortKey)sortDir*=-1;else{sortKey=k;sortDir=k==='label'?1:-1;} drawTable(rows);});
+}
+
+// ---- 입력 처리 ----
+function analyze(text){
+  $('#err').style.display='none';
+  try{
+    const json=JSON.parse(text);
+    render(normalize(json));
+  }catch(e){
+    $('#err').textContent='⚠️ '+(e.message||'JSON을 읽지 못했어요.');
+    $('#err').style.display='block';
+  }
+}
+$('#analyze').onclick=()=>{const t=$('#paste').value.trim();if(!t){$('#err').textContent='⚠️ 파일을 올리거나 JSON을 붙여넣어 주세요.';$('#err').style.display='block';return;}analyze(t);};
+$('#drop').onclick=()=>$('#file').click();
+$('#file').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{$('#paste').value=rd.result;analyze(rd.result);};rd.readAsText(f);};
+['dragover','dragenter'].forEach(ev=>$('#drop').addEventListener(ev,e=>{e.preventDefault();$('#drop').classList.add('hot');}));
+['dragleave','drop'].forEach(ev=>$('#drop').addEventListener(ev,e=>{e.preventDefault();$('#drop').classList.remove('hot');}));
+$('#drop').addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{$('#paste').value=rd.result;analyze(rd.result);};rd.readAsText(f);});
+document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText(b.dataset.c);b.textContent='복사됨!';setTimeout(()=>b.textContent='복사',1200);});
+$('#metricToggle').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+  metric=b.dataset.m;$('#metricToggle').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));if(STATE)drawBars();});
+
+// ---- 예시 데이터 ----
+$('#sample').onclick=()=>{
+  const models=['claude-opus-4','claude-sonnet-5','claude-haiku-4-5'];
+  const daily=[];
+  const base=[1.2,0.8,2.4,3.1,1.9,0.4,2.8,4.2,3.6,1.1];
+  for(let i=0;i<10;i++){
+    const d=`2026-06-${String(20+i).padStart(2,'0')}`;
+    const mb=models.map((m,j)=>{const f=(base[i]*(j===0?1:j===1?0.6:0.15));
+      return{modelName:m,inputTokens:Math.round(f*4200),outputTokens:Math.round(f*1400),
+        cacheCreationTokens:Math.round(f*900),cacheReadTokens:Math.round(f*38000),cost:+(f*(j===0?1:j===1?0.32:0.06)).toFixed(4)};});
+    const sum=(k)=>mb.reduce((a,x)=>a+x[k],0);
+    daily.push({date:d,inputTokens:sum('inputTokens'),outputTokens:sum('outputTokens'),
+      cacheCreationTokens:sum('cacheCreationTokens'),cacheReadTokens:sum('cacheReadTokens'),
+      totalCost:+mb.reduce((a,x)=>a+x.cost,0).toFixed(4),modelBreakdowns:mb});
+  }
+  $('#paste').value=JSON.stringify({daily},null,2);
+  analyze($('#paste').value);
+};
+</script>
+</body>
+</html>
