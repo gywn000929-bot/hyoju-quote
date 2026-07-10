@@ -125,12 +125,23 @@
   #dsheet .dbank{text-align:center; font-size:12px; font-weight:700; padding-top:8px;}
 
   @media print{
-    body *{visibility:hidden;}
-    body.print-quote #sheet, body.print-quote #sheet *{visibility:visible;}
-    body.print-ds #dsheet, body.print-ds #dsheet *{visibility:visible;}
-    .sheet-outer{border:none; padding:0; background:#fff; overflow:visible;}
-    body.print-quote #sheet{position:absolute; left:0; top:0; width:100%; padding:0; margin:0;}
-    body.print-ds #dsheet{position:absolute; left:0; top:0; width:100%; padding:0; margin:0; gap:8mm;}
+    /* 인쇄 대상 패널만 남기고 나머지를 레이아웃에서 완전히 제외 → 빈 페이지 방지 */
+    .wrap{max-width:none; margin:0; padding:0;}
+    .wrap>*{display:none !important;}
+    body.print-quote #quotePanel, body.print-ds #dsPanel{display:block !important; margin:0; padding:0; border:none;}
+    #quotePanel>h2, #dsPanel>h2{display:none;}
+    #quotePanel .sheet-outer, #dsPanel .sheet-outer{border:none; padding:0; margin:0; background:#fff; overflow:visible;}
+    body.print-quote #sheet{width:100%; margin:0; padding:0;}
+    body.print-ds #dsheet{width:100%; margin:0; padding:0; gap:8mm;}
+    /* 견적서 1장 맞춤 — 상하 여백 압축 (화면 미리보기는 영향 없음) */
+    #sheet .qtitle{font-size:28px; margin-bottom:14px;}
+    #sheet .head{margin-bottom:10px;}
+    #sheet .pname{margin-bottom:8px;}
+    #sheet table.items td{height:24px; padding-top:4px; padding-bottom:4px;}
+    #sheet .sums td{height:23px;}
+    #sheet .ref{min-height:44px; padding-bottom:12px;}
+    /* 거래명세표 1장 맞춤 — 행 높이 미세 축소로 경계 여유 확보 */
+    #dsheet table.dt td, #dsheet table.dt th{height:19px; padding-top:2px; padding-bottom:2px;}
     #sheet .pname, #sheet table.items th, #dsheet .ysum td, #dsheet .yhead th{-webkit-print-color-adjust:exact; print-color-adjust:exact;}
   }
   @media (max-width:520px){ header.app h1{font-size:20px;} .stat .v{font-size:17px;} }
@@ -317,7 +328,7 @@
     </div>
   </div>
 
-  <div class="panel">
+  <div class="panel" id="quotePanel">
     <h2><span class="tag">4</span>견적서 미리보기</h2>
     <div class="sheet-outer">
       <div id="sheet">
@@ -377,7 +388,7 @@
     </div>
   </div>
 
-  <div class="panel">
+  <div class="panel" id="dsPanel">
     <h2><span class="tag">6</span>거래명세표 미리보기 <span class="cnt">— 인쇄 시 A4 가로 1장</span></h2>
     <div class="sheet-outer"><div id="dsheet"></div></div>
   </div>
@@ -732,7 +743,17 @@ $('draftBody').addEventListener('input', e=>{
   if(k==='unit'||k==='qty'){
     const n=v.replace(/[^0-9]/g,'');
     draft[i][k]=n?parseInt(n,10):'';
-    if(k==='unit') draft[i].sagup=false;
+    if(k==='unit' && draft[i].sagup){
+      // 단가를 직접 고치면 더 이상 사급 가공비가 아니므로 체크박스·비고를 즉시 동기화
+      draft[i].sagup=false;
+      const rowEl=e.target.closest('tr');
+      const cb=rowEl.querySelector('input[data-k="sagup"]'); if(cb) cb.checked=false;
+      const newRmk=(draft[i].rmk||'').replace(/\s*자재 사급/,'').trim();
+      if(newRmk!==draft[i].rmk){
+        draft[i].rmk=newRmk;
+        const rmkInput=rowEl.querySelector('input[data-k="rmk"]'); if(rmkInput) rmkInput.value=newRmk;
+      }
+    }
     if(document.activeElement===e.target&&n){ e.target.value=parseInt(n,10).toLocaleString('ko-KR'); }
   } else draft[i][k]=v;
   const tr=e.target.closest('tr');
@@ -943,7 +964,7 @@ $('dsPdfBtn').addEventListener('click', ()=>{
 const LS_KEY='hyoju_saved_quotes_v5';
 function loadSaved(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)||'[]'); }catch(e){ return []; } }
 function writeSaved(arr){ try{ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }catch(e){ alert('저장 공간이 부족하거나 차단되었습니다.'); } }
-function quoteTotal(){ return draft.reduce((s,it)=>{ const u=parseFloat(String(it.unit).replace(/[^0-9.-]/g,''))||0; const q=it.sagup?1:(parseFloat(String(it.qty).replace(/[^0-9.-]/g,''))||1); return s+(it.qty===''||it.qty==null?u:u*q); },0); }
+function quoteTotal(){ return draft.reduce((s,it)=>{ const u=parseFloat(String(it.unit).replace(/[^0-9.-]/g,''))||0; const q=parseFloat(String(it.qty).replace(/[^0-9.-]/g,''))||1; return s+(it.qty===''||it.qty==null?u:u*q); },0); }
 function snapshotQuote(){
   return { id:'q'+Date.now(), savedAt:new Date().toISOString().slice(0,10),
     vendor:$('qVendor').value.trim(), person:$('qPerson').value.trim(), date:$('qDate').value,
