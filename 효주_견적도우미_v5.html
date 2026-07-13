@@ -998,12 +998,20 @@ $('importFile').addEventListener('change', e=>{
   rd.onload=()=>{ try{
     const j=JSON.parse(rd.result);
     const incoming=Array.isArray(j)?j:(j.quotes||[]);
-    if(!incoming.length){ alert('가져올 견적이 없습니다.'); return; }
+    if(!Array.isArray(incoming) || !incoming.length){ alert('가져올 견적이 없습니다. (올바른 견적 JSON 파일인지 확인해 주세요)'); return; }
     const cur=loadSaved(); const seen=new Set(cur.map(x=>x.id));
-    let add=0; incoming.forEach(q=>{ if(q&&q.id&&!seen.has(q.id)){ cur.push(q); seen.add(q.id); add++; } });
+    let add=0, dup=0, invalid=0;
+    incoming.forEach(q=>{
+      if(!q || !q.id || !Array.isArray(q.items)){ invalid++; return; }
+      if(seen.has(q.id)){ dup++; return; }
+      cur.push(q); seen.add(q.id); add++;
+    });
     writeSaved(cur); renderSaved();
-    alert(add+'건을 가져왔습니다. (중복 '+(incoming.length-add)+'건 제외)');
-  }catch(err){ alert('JSON 파일을 읽을 수 없습니다.'); } };
+    let msg=add+'건을 가져왔습니다.';
+    if(dup) msg+=' (중복 '+dup+'건 제외)';
+    if(invalid) msg+=' (형식 오류 '+invalid+'건 제외)';
+    alert(msg);
+  }catch(err){ alert('JSON 파일을 읽을 수 없습니다: '+err.message); } };
   rd.readAsText(f); e.target.value='';
 });
 
