@@ -152,6 +152,14 @@ function costOf(model,t){
   return (t.input*p.inp + t.output*p.out + t.cacheRead*p.read + t.c5*p.w5 + t.c1h*p.w1h)/M;
 }
 const shortModel=m=>String(m||'unknown').replace(/^.*\//,'');
+// 타임스탬프를 "내 컴퓨터 시간대(한국이면 KST)" 기준 날짜로 변환 — ccusage와 동일
+function localDate(ts){
+  if(!ts) return '날짜미상';
+  const d=new Date(ts);
+  if(isNaN(d.getTime())) return String(ts).slice(0,10)||'날짜미상';
+  const p=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+}
 
 /* ===== Claude Code JSONL 로그 파싱 ===== */
 function usageOf(u){
@@ -183,7 +191,7 @@ function parseLogs(texts){
       if(key!=='|')seen.add(key);
       const t=usageOf(u);
       if(t.input+t.output+t.cacheRead+t.c5+t.c1h===0) continue;
-      const date=(e.timestamp||e.time||'').slice(0,10)||'날짜미상';
+      const date=localDate(e.timestamp||e.time);
       const model=shortModel(msg.model||e.model);
       const cost=costOf(model,t);
       const d=byDate[date]||(byDate[date]={label:date,input:0,output:0,cacheCreate:0,cacheRead:0,total:0,cost:0,_m:{}});
