@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>효주 GEO 견적 도우미</title>
+<style>
+  :root{--navy:#1e3a5f;--navy-l:#eef3f9;--ink:#2b3440;--sub:#7a8694;--line:#e3e8ee;
+        --ok:#0f7b4d;--ok-bg:#eefaf3;--warn:#b54708;--warn-bg:#fff6ec;--accent:#2e5c8a;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Malgun Gothic','맑은 고딕',-apple-system,sans-serif;color:var(--ink);line-height:1.5;background:#fff;}
+  .wrap{max-width:980px;margin:0 auto;padding:26px 18px 60px;}
+  header{border-bottom:3px solid var(--navy);padding-bottom:14px;margin-bottom:18px;}
+  h1{font-size:22px;color:var(--navy);font-weight:800;}
+  header p{font-size:13px;color:var(--sub);margin-top:5px;}
+  .panel{border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:16px;}
+  .drop{border:2px dashed var(--navy);border-radius:12px;padding:26px;text-align:center;color:var(--navy);
+        background:var(--navy-l);cursor:pointer;font-weight:700;font-size:15px;}
+  .drop.over{background:#dde8f4;}
+  .row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;}
+  label{display:block;font-size:12px;color:var(--sub);margin-bottom:4px;font-weight:600;}
+  select,input{padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;font-family:inherit;}
+  input.num{text-align:right;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px;}
+  th{background:var(--navy);color:#fff;padding:8px 9px;text-align:left;font-size:11.5px;white-space:nowrap;}
+  td{padding:6px 9px;border-bottom:1px solid var(--line);}
+  td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  tr:nth-child(even) td{background:#f8fafc;}
+  tfoot td{font-weight:800;color:var(--navy);border-top:2px solid var(--navy);background:#fff;}
+  .qty{width:64px;text-align:right;}
+  .result{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:8px;}
+  .stat{background:var(--navy-l);border-radius:8px;padding:12px 14px;}
+  .stat .k{font-size:11px;color:var(--sub);} .stat .v{font-size:19px;font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums;}
+  .stat .s{font-size:11px;color:var(--sub);margin-top:2px;}
+  .stat.hero{background:var(--navy);} .stat.hero .k,.stat.hero .s{color:#bcd0e6;} .stat.hero .v{color:#fff;}
+  .stat.good{background:var(--ok-bg);} .stat.good .v{color:var(--ok);}
+  .note{font-size:12px;border-radius:7px;padding:10px 12px;margin-top:12px;}
+  .note.warn{color:var(--warn);background:var(--warn-bg);}
+  .note.info{color:var(--navy);background:var(--navy-l);}
+  .empty{padding:20px;text-align:center;color:var(--sub);}
+  .rate{width:74px;text-align:right;}
+  b.hl{color:var(--accent);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>효주 GEO 견적 도우미 <span style="font-size:12px;color:var(--warn);font-weight:600;">베타</span></h1>
+    <p>GEO 파일 <b>여러 개를 한 번에</b> 올리면 형상(절단·절곡·구멍·중량)을 자동 계산하고,
+       <b>과거 실적</b>과 대조해 대략 견적을 냅니다. 형상은 정확 · 금액은 참고치. 설치/인터넷 불필요.</p>
+  </header>
+
+  <div class="panel">
+    <div class="drop" id="drop">📂 여기에 GEO 파일들을 끌어놓거나 클릭해서 선택<br>
+      <span style="font-size:12px;font-weight:400;color:var(--sub);">한 건의 부품 여러 개를 한꺼번에 선택하세요</span></div>
+    <input type="file" id="files" accept=".geo,.GEO" multiple style="display:none">
+  </div>
+
+  <div class="panel" id="cfgPanel" style="display:none;">
+    <div class="row">
+      <div><label>재질</label><select id="fam">
+        <option value="SS">SS (일반강)</option><option value="SUS">SUS (스테인리스)</option>
+        <option value="AL">AL</option><option value="CR">CR</option><option value="GI">GI</option>
+      </select></div>
+      <div><label>두께(T)</label><input class="num" id="thk" style="width:70px" value="3.2"></div>
+      <div><label>올인 단가 (원/mm)</label><input class="num rate" id="rate" value="71">
+        <div style="font-size:11px;color:var(--sub);margin-top:3px;">대연 앵커 71 · 수량 많으면 ↓</div></div>
+      <div style="flex:1;text-align:right;color:var(--sub);font-size:12px;">부품별 수량은 표에서 수정</div>
+    </div>
+  </div>
+
+  <div class="panel" id="tblPanel" style="display:none;">
+    <table>
+      <thead><tr><th>파일</th><th>크기(mm)</th><th style="text-align:right">절단(mm)</th>
+        <th style="text-align:right">구멍</th><th style="text-align:right">절곡</th><th style="text-align:right">수량</th>
+        <th style="text-align:right">절단×수량</th></tr></thead>
+      <tbody id="body"></tbody>
+      <tfoot><tr><td id="fCnt">합계</td><td></td><td class="num" id="fCut">0</td><td class="num" id="fPier">0</td>
+        <td class="num" id="fBend">0</td><td class="num" id="fQty">0</td><td class="num" id="fCutQ">0</td></tr></tfoot>
+    </table>
+
+    <div class="result" id="result"></div>
+    <div class="note info" id="histNote"></div>
+    <div class="note warn">⚠ 금액은 <b>1건 앵커(대연 686,000)</b> 기반 대략치입니다. 소량 단발 기준이라 수량이 많으면 원/mm를 낮추세요.
+      최종 금액은 위 <b>과거 실적</b>과 사장님 판단으로 결정하세요. 형상값(절단·절곡·구멍·중량)은 정확합니다.</div>
+  </div>
+</div>
+
+<script id="HIST" type="application/json">{"SS|3.2":{"n":51,"med":310000,"min":1000,"max":11883000},"SS|2.3":{"n":36,"med":436000,"min":27000,"max":36941300},"SS|12":{"n":39,"med":1078000,"min":26400,"max":148500000},"SUS|3":{"n":61,"med":485000,"min":10450,"max":20550000},"SS|1.6":{"n":85,"med":530000,"min":15000,"max":11308500},"SUS|4":{"n":10,"med":106750,"min":25000,"max":2695000},"SUS|2":{"n":64,"med":264300,"min":0,"max":5350000},"SS|4.5":{"n":33,"med":363000,"min":0,"max":6633000},"AL|6":{"n":4,"med":88900,"min":11000,"max":260000},"SS|2":{"n":66,"med":236500,"min":18000,"max":15860000},"SUS|3042":{"n":2,"med":94900,"min":49000,"max":140800},"SS|4":{"n":73,"med":1540000,"min":0,"max":13400000},"SS|16":{"n":15,"med":948000,"min":125000,"max":2689000},"SUS|6":{"n":27,"med":183500,"min":10000,"max":2738000},"AL|3":{"n":14,"med":177500,"min":25000,"max":1815000},"SS|9":{"n":31,"med":990000,"min":12500,"max":11150000},"SS|3":{"n":57,"med":678000,"min":15000,"max":4745000},"AL|8":{"n":3,"med":490000,"min":100000,"max":794000},"SUS|1.5":{"n":29,"med":595000,"min":110000,"max":16210000},"SS|15":{"n":18,"med":755000,"min":90000,"max":8530000},"SS|10":{"n":44,"med":352500,"min":25000,"max":11510000},"SUS|10":{"n":16,"med":336000,"min":0,"max":2945000},"SS|8":{"n":26,"med":330500,"min":32000,"max":4200000},"EGI|1.2":{"n":11,"med":470000,"min":19000,"max":1860000},"AL|4":{"n":4,"med":54500,"min":22000,"max":1636000},"SUS|1":{"n":28,"med":252000,"min":0,"max":7800000},"AL|2":{"n":17,"med":105600,"min":8250,"max":888800},"SS|20":{"n":14,"med":489000,"min":78000,"max":13350000},"SUS|5":{"n":18,"med":425000,"min":10400,"max":5434000},"SUS|1.2":{"n":16,"med":281300,"min":30800,"max":3285000},"SS|6":{"n":61,"med":685000,"min":10000,"max":64625000},"GI|2":{"n":7,"med":435000,"min":95000,"max":2607000},"SUS|2.5":{"n":5,"med":603000,"min":18000,"max":1565000},"AL|6.4":{"n":1,"med":92000,"min":92000,"max":92000},"SS|5":{"n":23,"med":285000,"min":28000,"max":3076000},"SUS|8":{"n":19,"med":395000,"min":32000,"max":1870500},"SUS|12":{"n":8,"med":470000,"min":0,"max":1920000},"CR|1.2":{"n":23,"med":220000,"min":5000,"max":3163000},"EGI|2":{"n":6,"med":4200000,"min":138000,"max":8627500},"SS|1.5":{"n":1,"med":6175000,"min":6175000,"max":6175000},"CR|1":{"n":8,"med":1169750,"min":101000,"max":6609000},"CR|3":{"n":1,"med":880000,"min":880000,"max":880000},"AL|2.8":{"n":1,"med":6000,"min":6000,"max":6000},"AL|5":{"n":8,"med":373250,"min":83000,"max":1355200},"AL|1":{"n":5,"med":891000,"min":52800,"max":13467650},"SK5|53":{"n":2,"med":252000,"min":252000,"max":252000},"GI|0.35":{"n":2,"med":867500,"min":650000,"max":1085000},"SUS|3164":{"n":1,"med":4125000,"min":4125000,"max":4125000},"GI|4.2":{"n":1,"med":800000,"min":800000,"max":800000},"AL|60617":{"n":1,"med":6000000,"min":6000000,"max":6000000},"SUS|0.1":{"n":3,"med":2348900,"min":232100,"max":3240500},"AL|3.2":{"n":2,"med":731250,"min":357500,"max":1105000},"CR|2":{"n":1,"med":4954000,"min":4954000,"max":4954000},"SK5|54":{"n":1,"med":65000,"min":65000,"max":65000},"AL|0.5":{"n":3,"med":110000,"min":22000,"max":180000},"SUS|0.5":{"n":10,"med":62000,"min":8000,"max":277000},"SUS|16":{"n":1,"med":0,"min":0,"max":0},"SUS|15":{"n":9,"med":2065000,"min":405000,"max":7580000},"SS|18":{"n":2,"med":205000,"min":90000,"max":320000},"CR|0.5":{"n":4,"med":504000,"min":21000,"max":3525000},"SS|25":{"n":1,"med":1600000,"min":1600000,"max":1600000},"AL|1.5":{"n":7,"med":256300,"min":38000,"max":1611500},"GI|1.6":{"n":7,"med":550000,"min":20000,"max":4181870},"GI|3":{"n":3,"med":844800,"min":831600,"max":1095000},"AL|1.6":{"n":1,"med":22000,"min":22000,"max":22000},"AL|2.5":{"n":1,"med":8000,"min":8000,"max":8000},"SUS|0.8":{"n":3,"med":510000,"min":125000,"max":950000},"SUS|3046":{"n":1,"med":1880000,"min":1880000,"max":1880000},"SUS|0.3":{"n":3,"med":154000,"min":43000,"max":360000},"EGI|0.5":{"n":1,"med":66000,"min":66000,"max":66000},"GI|4.5":{"n":1,"med":4554000,"min":4554000,"max":4554000},"GI|5":{"n":1,"med":3217500,"min":3217500,"max":3217500},"AL|1.2":{"n":2,"med":773025,"min":514250,"max":1031800},"PO|2":{"n":3,"med":1217000,"min":0,"max":1217000},"PO|1.6":{"n":5,"med":471000,"min":134750,"max":1219000},"GI|1":{"n":7,"med":363000,"min":45000,"max":3580500},"GI|1.2":{"n":6,"med":3620780,"min":93000,"max":35200000},"AL|6.35":{"n":1,"med":52800,"min":52800,"max":52800},"SS|1.2":{"n":1,"med":102300,"min":102300,"max":102300},"PO|3":{"n":1,"med":126500,"min":126500,"max":126500},"SUS|9":{"n":1,"med":740000,"min":740000,"max":740000},"SUS|20":{"n":3,"med":414000,"min":185000,"max":2017000},"SS|14":{"n":1,"med":5095000,"min":5095000,"max":5095000},"CR|0.8":{"n":1,"med":182000,"min":182000,"max":182000},"CR|0.1":{"n":2,"med":564000,"min":376000,"max":752000},"GI|0.3":{"n":1,"med":840000,"min":840000,"max":840000},"GI|0.8":{"n":3,"med":14000,"min":13150,"max":35760},"PO|3.2":{"n":1,"med":820000,"min":820000,"max":820000},"SUS|316":{"n":2,"med":6255425,"min":5819000,"max":6691850}}</script>
+<script>
+const HIST=JSON.parse(document.getElementById('HIST').textContent);
+const $=id=>document.getElementById(id);
+const won=n=>(n==null||isNaN(n))?'':Math.round(n).toLocaleString('ko-KR');
+const DENS={SS:7.85,SUS:8.0,AL:2.70,CR:7.85,GI:7.85};
+
+function parseGEO(text){
+  const L=text.split(/\r\n|\r|\n/).map(s=>s.trim());
+  const pts={}; let i=0;
+  while(i<L.length && L[i]!=='#~31') i++;
+  for(;i<L.length;i++){
+    if(L[i]==='P'){ const id=parseInt(L[i+1],10); const xy=(L[i+2]||'').split(/\s+/).map(parseFloat);
+      if(xy.length>=2) pts[id]=[xy[0],xy[1]]; i+=2; }
+    else if(L[i]==='##~~'||L[i]==='#~33'||L[i]==='#~END') break;
+  }
+  const contours=[];
+  for(i=0;i<L.length;i++){
+    if(L[i]!=='#~33') continue;
+    let j=i+1; const hdr=[];
+    while(j<L.length && L[j]!=='#~331'){ if(L[j]!==''&&L[j]!=='##~~') hdr.push(L[j]); j++; }
+    let layer=null;
+    for(const h of hdr){ const m=h.match(/^\d+\s+(\d+)\s+\d+$/); if(m){ layer=parseInt(m[1],10); break; } }
+    const elems=[]; let k=j+1;
+    for(;k<L.length;k++){
+      const t=L[k];
+      if(t==='##~~'||t==='#~KONT_END') break;
+      if(t==='LIN'){ elems.push(['LIN',(L[k+2]||'').split(/\s+/).map(Number)]); k+=2; }
+      else if(t==='ARC'){ elems.push(['ARC',(L[k+2]||'').split(/\s+/).map(Number),parseFloat(L[k+3])]); k+=3; }
+      else if(t==='CIR'){ elems.push(['CIR',parseInt(L[k+2],10),parseFloat(L[k+3])]); k+=3; }
+    }
+    contours.push([layer,elems]); i=k;
+  }
+  return {pts,contours};
+}
+function geom(pts,contours){
+  let cut=0,pier=0,bend=0; const d=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+  for(const [layer,elems] of contours){
+    if(layer===25){ if(elems.length) bend++; continue; }
+    if(layer!==24) continue;
+    pier++;
+    for(const e of elems){
+      if(e[0]==='LIN'){ const a=pts[e[1][0]],b=pts[e[1][1]]; if(a&&b) cut+=d(a,b); }
+      else if(e[0]==='ARC'){ const P=pts[e[1][0]],Q=pts[e[1][1]],R=pts[e[1][2]];
+        if(P&&Q&&R){ let c,s,en; for(const t of [[P,Q,R],[Q,P,R],[R,P,Q]]){ if(Math.abs(d(t[0],t[1])-d(t[0],t[2]))<1e-3){c=t[0];s=t[1];en=t[2];break;} }
+          if(!c){c=P;s=Q;en=R;} const rad=d(c,s); const a0=Math.atan2(s[1]-c[1],s[0]-c[0]),a1=Math.atan2(en[1]-c[1],en[0]-c[0]);
+          let sw; if(e[2]===1){sw=a1-a0; while(sw<0)sw+=2*Math.PI;} else {let w=a0-a1; while(w<0)w+=2*Math.PI; sw=-w;}
+          cut+=Math.abs(sw)*rad; } }
+      else if(e[0]==='CIR'){ cut+=2*Math.PI*e[2]; }
+    }
+  }
+  const xs=Object.values(pts).map(p=>p[0]), ys=Object.values(pts).map(p=>p[1]);
+  const w=xs.length?Math.max(...xs)-Math.min(...xs):0, h=ys.length?Math.max(...ys)-Math.min(...ys):0;
+  return {cut,pier,bend,w,h};
+}
+
+let PARTS=[];
+function handleFiles(fileList){
+  const files=[...fileList].filter(f=>/\.geo$/i.test(f.name));
+  if(!files.length) return;
+  files.sort((a,b)=>{const na=parseInt(a.name),nb=parseInt(b.name); return (isNaN(na)||isNaN(nb))?a.name.localeCompare(b.name):na-nb;});
+  PARTS=[];
+  let done=0;
+  files.forEach((f,idx)=>{
+    const rd=new FileReader();
+    rd.onload=()=>{
+      try{ const {pts,contours}=parseGEO(rd.result); const g=geom(pts,contours);
+        PARTS[idx]={name:f.name,...g,qty:1}; }
+      catch(e){ PARTS[idx]={name:f.name,cut:0,pier:0,bend:0,w:0,h:0,qty:1,err:1}; }
+      if(++done===files.length){ PARTS=PARTS.filter(Boolean); render(); }
+    };
+    rd.readAsText(f);
+  });
+}
+function render(){
+  if(!PARTS.length) return;
+  $('cfgPanel').style.display='block'; $('tblPanel').style.display='block';
+  $('body').innerHTML=PARTS.map((p,i)=>`<tr>
+    <td>${p.name}${p.err?' ⚠':''}</td>
+    <td>${Math.round(p.w)}×${Math.round(p.h)}</td>
+    <td class="num">${won(p.cut)}</td><td class="num">${p.pier}</td><td class="num">${p.bend}</td>
+    <td class="num"><input class="num qty" data-i="${i}" value="${p.qty}"></td>
+    <td class="num">${won(p.cut*p.qty)}</td></tr>`).join('');
+  const T={cut:0,pier:0,bend:0,qty:0,cutq:0,area:0};
+  const fam=$('fam').value, thk=parseFloat($('thk').value)||0, dens=DENS[fam]||7.85;
+  PARTS.forEach(p=>{ T.cut+=p.cut; T.pier+=p.pier*p.qty; T.bend+=p.bend*p.qty; T.qty+=p.qty;
+    T.cutq+=p.cut*p.qty; T.area+=p.w*p.h*p.qty; });
+  $('fCnt').textContent='합계 ('+PARTS.length+'종)'; $('fCut').textContent=won(T.cut);
+  $('fPier').textContent=won(T.pier); $('fBend').textContent=won(T.bend);
+  $('fQty').textContent=won(T.qty); $('fCutQ').textContent=won(T.cutq);
+  const kg=T.area*1.2*thk*dens/1e6;
+  const rate=parseFloat($('rate').value)||0;
+  const est=Math.round(T.cutq*rate/1000)*1000;
+  $('result').innerHTML=
+    stat('총 절단(수량반영)',won(T.cutq)+'mm','절곡 '+T.bend+'회 · 구멍 '+T.pier+'개')+
+    stat('자재 중량',kg.toFixed(1)+'kg',fam+' '+thk+'T · 스크랩20%')+
+    stat('대략 견적',won(est)+'원',T.cutq+'mm × '+rate+'원/mm','hero')+
+    stat('개당 평균',won(est/Math.max(1,T.qty))+'원','총 '+T.qty+'개','good');
+  // 과거 실적 대조
+  const key=fam+'|'+(thk%1===0?String(thk|0):String(thk));
+  const hs=HIST[key];
+  $('histNote').innerHTML = hs
+    ? `📊 과거 <b>${key.replace('|',' ')}T</b> 실적 <b>${hs.n}건</b> — 합계 중앙값 <b class="hl">${won(hs.med)}원</b> (범위 ${won(hs.min)}~${won(hs.max)}). `+
+      `이 대략치가 이 범위 안/근처인지 확인하세요.`
+    : `📊 ${key.replace('|',' ')}T 과거 실적이 없어 대조 불가 — 값을 특히 신중히.`;
+}
+$('body')&&$('body').addEventListener('input',e=>{
+  const i=e.target.dataset.i; if(i==null) return;
+  PARTS[i].qty=Math.max(0,parseInt(e.target.value.replace(/[^0-9]/g,'')||'0',10)); render2Row(i);
+});
+function render2Row(i){ // 수량만 바뀌면 전체 재계산(간단히 render 재호출)
+  const scrollY=window.scrollY; render(); window.scrollTo(0,scrollY);
+  // 포커스 유지
+  const el=document.querySelector(`.qty[data-i="${i}"]`); if(el){ el.focus(); el.setSelectionRange(el.value.length,el.value.length);} }
+['fam','thk','rate'].forEach(id=>$(id).addEventListener('input',render));
+
+const drop=$('drop');
+drop.addEventListener('click',()=>$('files').click());
+$('files').addEventListener('change',e=>handleFiles(e.target.files));
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over');}));
+drop.addEventListener('drop',e=>{ if(e.dataTransfer.files.length) handleFiles(e.dataTransfer.files); });
+function stat(k,v,s,cls){ return `<div class="stat${cls?' '+cls:''}"><div class="k">${k}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:''}</div>`; }
+</script>
+</body>
+</html>
