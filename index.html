@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>효주기업 견적 도구 모음</title>
+<style>
+  :root{--navy:#1e3a5f;--navy-l:#eef3f9;--ink:#2b3440;--sub:#7a8694;--line:#e3e8ee;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Malgun Gothic','맑은 고딕',-apple-system,sans-serif;color:var(--ink);
+       background:var(--navy-l);line-height:1.55;}
+  .wrap{max-width:760px;margin:0 auto;padding:34px 18px 60px;}
+  header{border-bottom:3px solid var(--navy);padding-bottom:16px;margin-bottom:22px;}
+  h1{font-size:24px;color:var(--navy);font-weight:800;}
+  header p{font-size:13px;color:var(--sub);margin-top:6px;}
+  a.card{display:block;background:#fff;border:1px solid var(--line);border-radius:12px;
+         padding:18px 20px;margin-bottom:14px;text-decoration:none;color:inherit;
+         transition:box-shadow .15s,transform .15s;}
+  a.card:hover{box-shadow:0 6px 20px rgba(30,58,95,.12);transform:translateY(-1px);}
+  a.card h2{font-size:17px;color:var(--navy);font-weight:800;display:flex;align-items:center;gap:8px;}
+  a.card p{font-size:13px;color:var(--sub);margin-top:5px;}
+  .tag{font-size:11px;background:var(--navy);color:#fff;border-radius:5px;padding:2px 7px;font-weight:700;}
+  footer{font-size:11px;color:var(--sub);margin-top:22px;text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>효주기업 견적 도구 모음</h1>
+    <p>아래 항목을 누르면 바로 실행됩니다. 설치·인터넷 불필요.</p>
+  </header>
+
+  <a class="card" href="hyoju-quote-v5.html">
+    <h2>🧾 레이저 견적 도우미 <span class="tag">메인</span></h2>
+    <p>재질·두께·자재비로 단가 추천, 견적서·거래명세표 작성·인쇄. 실거래 이력 기반.</p>
+  </a>
+  <a class="card" href="tools/효주_실적조회.html">
+    <h2>🔎 과거 실적 조회</h2>
+    <p>“대연 SS 3.2”처럼 치면 지난 실제 견적(자재·가공·합계)·중앙값·범위를 즉시 표시. 실견적 1,503건.</p>
+  </a>
+  <a class="card" href="tools/효주_GEO견적.html">
+    <h2>📐 GEO 견적 도우미 <span class="tag">베타</span></h2>
+    <p>GEO 파일 여러 개를 한 번에 → 형상(절단·절곡·구멍·중량) 자동계산 + 대략견적 + 과거실적 대조.</p>
+  </a>
+  <a class="card" href="tools/효주_견적대조.html">
+    <h2>📁 견적서 폴더 대조</h2>
+    <p>견적서 PDF 폴더를 고르면 폴더날짜↔견적서날짜 일치검증 + 자재/가공/합계 자동추출 → 엑셀·JSON.</p>
+  </a>
+
+  <footer>효주기업 · 사내용 도구 · 데이터(거래처·단가)가 포함되어 있습니다.</footer>
+</div>
+</body>
+</html>
