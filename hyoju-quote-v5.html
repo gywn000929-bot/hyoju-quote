@@ -209,7 +209,7 @@
 
   <div class="panel">
     <h2><span class="tag">D</span>DXF·GEO 자동견적 <span class="cnt">— 도면(DXF) 또는 TruTops GEO를 끌어다 놓으면 절단길이·구멍·크기로 단가를 추정합니다 (베타)</span></h2>
-    <div id="dxfDrop">📐 여기로 <b>DXF·GEO 파일</b>을 끌어다 놓거나 클릭해 선택<input type="file" id="dxfFile" accept=".dxf,.geo,application/dxf,image/vnd.dxf" style="display:none;"></div>
+    <div id="dxfDrop">📐 <b>DXF·GEO 파일</b>을 끌어다 놓거나 클릭 — <b>여러 개 한 번에</b> 가능<input type="file" id="dxfFile" accept=".dxf,.geo,application/dxf,image/vnd.dxf" multiple style="display:none;"></div>
     <div id="dxfMain" style="display:none;">
       <div class="dxf-cols">
         <div>
@@ -1343,6 +1343,67 @@ function recomputeFromLayers(){
 }
 
 /* ---- 파일 로드 ---- */
+/* ---- 여러 파일 일괄 처리 (배치) — 전체 동일 재질·두께 적용 후 표에서 개별수정 ---- */
+function dxfGeomFromText(txt, fileName){
+  const isGeo=/\.geo$/i.test(fileName) || txt.slice(0,300).indexOf('#~')>=0;
+  let model, polys;
+  if(isGeo){ const g=parseGEO(txt); model={layers:g.layers,ents:[],blocks:{}}; polys=g.polys; }
+  else { model=dxfParse(txt); polys=collectPolys(model); }
+  const reIgnore=/dim|치수|\btex\b|text|문자|글자|note|주기|hatch|해치|\bcen\b|\bcl\b|center|중심|frame|프레임|배치|title|제목|표제|뷰포트|viewport|defpoints|\bhid\b|hidden|숨은|가상|virtual|phantom|\bdl\b|방향|배관|wall|door|condens|\bequ\b|치수보조|보조선/i;
+  const reBend=/bend|절곡|fold|벤딩|굽힘|성형/i;
+  const cls={}; Object.keys(model.layers).forEach(n=>{ cls[n]=reBend.test(n)?'bend':(reIgnore.test(n)?'ignore':'cut'); });
+  let cut=0,pierce=0,bend=0,mnx=1e18,mxx=-1e18,mny=1e18,mxy=-1e18,dropped=0;
+  polys.forEach(P=>{
+    const c=cls[P.layer]||'cut'; if(c==='ignore') return;
+    if(c==='bend'){ bend+=Math.max(1,P.pts.length-1); return; }
+    let a=1e18,b=-1e18,cc=1e18,d=-1e18;
+    for(const p of P.pts){ if(p[0]<a)a=p[0];if(p[0]>b)b=p[0];if(p[1]<cc)cc=p[1];if(p[1]>d)d=p[1]; }
+    if(Math.max(b-a,d-cc)>DXF_PART_MAX){ dropped++; return; }
+    for(let k=1;k<P.pts.length;k++) cut+=Math.hypot(P.pts[k][0]-P.pts[k-1][0], P.pts[k][1]-P.pts[k-1][1]);
+    if(P.loop) pierce++;
+    P.pts.forEach(p=>{ if(p[0]<mnx)mnx=p[0];if(p[0]>mxx)mxx=p[0];if(p[1]<mny)mny=p[1];if(p[1]>mxy)mxy=p[1]; });
+  });
+  const w=(mxx>mnx)?mxx-mnx:0, h=(mxy>mny)?mxy-mny:0;
+  return {cut:Math.round(cut),pierce,w:Math.round(w),h:Math.round(h),bend,dropped};
+}
+function loadDxfBatch(fileList){
+  const files=[...(fileList||[])].filter(Boolean);
+  if(!files.length) return;
+  if(files.length===1){ loadDxf(files[0]); return; }   // 단일은 기존 미리보기 흐름
+  let thk=dxfNum('dxfThk');
+  if(!thk){
+    const t=prompt('부품 두께(T)를 입력하세요 — 올린 '+files.length+'개 전체에 동일 적용됩니다. (예: 6)\n비워 두면 자재비가 0으로 계산됩니다.', '');
+    if(t!=null && numClean(t)>0){ thk=numClean(t); $('dxfThk').value=thk; }
+  }
+  const mat=$('dxfMat').value, ven=$('dxfVen').value, weld=dxfNum('dxfWeld');
+  const results=new Array(files.length); let done=0;
+  files.forEach((file,idx)=>{
+    const rd=new FileReader();
+    rd.onload=()=>{
+      try{
+        const g0=dxfGeomFromText(String(rd.result), file.name);
+        const g=Object.assign({}, g0, {mat, thk, ven, weld, qty:1, util:dxfCfg.util});
+        const e=dxfEstimate(g), pl=dxfPlausible(g);
+        const mc=Math.round(e.matCost), pc=Math.max(0,e.unit-mc);
+        results[idx]={ ok:true, plausible:pl.ok, name:file.name,
+          row:{ spec:dxfAutoSpec(g), unit:e.unit, qty:1, rmk:'DXF 추정'+(g.bend?(' · 절곡'+g.bend):'')+(pl.ok?'':' · ⚠확인'), mc, pc, baseUnit:e.unit, sagup:false } };
+      }catch(err){ results[idx]={ ok:false, name:file.name }; }
+      if(++done===files.length){
+        let added=0; const bad=[], fail=[];
+        results.forEach(r=>{ if(!r) return; if(r.ok){ draft.push(r.row); added++; if(!r.plausible) bad.push(r.name); } else fail.push(r.name); });
+        if(ven && !$('qVendor').value) $('qVendor').value=ven;
+        renderDraft();
+        let msg=added+'개 부품을 견적서에 추가했습니다 (재질 '+mat+', 두께 '+(thk||0)+'T).';
+        if(!thk) msg+='\n\n\u26a0 두께가 비어 있어 자재비가 0으로 계산됐습니다. 견적서 표에서 단가를 고치거나, 두께를 넣고 다시 올리세요.';
+        if(bad.length) msg+='\n\n\u26a0 자동추정 신뢰 불가(도면·배치형상일 수 있음): '+bad.join(', ')+'\n\u2192 표에서 단가를 확인·수정하세요.';
+        if(fail.length) msg+='\n\n\u2715 읽기 실패: '+fail.join(', ');
+        alert(msg);
+        $('draftBody').scrollIntoView({behavior:'smooth',block:'center'});
+      }
+    };
+    rd.readAsText(file);
+  });
+}
 function loadDxf(file){
   const rd=new FileReader();
   rd.onload=()=>{
@@ -1365,7 +1426,7 @@ function loadDxf(file){
       const mm=hay.match(/\b(SUS|EGI|SS|AL|CR|GI|SK5|PO)\b/); if(mm){ $('dxfMat').value=mm[1]; }
       const tm=hay.match(/(\d+(?:\.\d+)?)\s*T\b/); if(tm){ $('dxfThk').value=tm[1]; }
       $('dxfDrop').classList.add('has');
-      $('dxfDrop').innerHTML='📐 <b>'+esc(file.name)+'</b> — 다른 파일을 끌어다 놓거나 클릭해 교체<input type="file" id="dxfFile" accept=".dxf,.geo,application/dxf,image/vnd.dxf" style="display:none;">';
+      $('dxfDrop').innerHTML='📐 <b>'+esc(file.name)+'</b> — 다른 파일(여러 개 가능)을 끌어다 놓거나 클릭해 교체<input type="file" id="dxfFile" accept=".dxf,.geo,application/dxf,image/vnd.dxf" multiple style="display:none;">';
       bindDxfFile();
       $('dxfMain').style.display='block';
       renderLayers(); recomputeFromLayers(); renderDxfPreview(); renderBreak();
@@ -1373,7 +1434,7 @@ function loadDxf(file){
   };
   rd.readAsText(file);
 }
-function bindDxfFile(){ const f=$('dxfFile'); if(f) f.addEventListener('change', e=>{ if(e.target.files[0]) loadDxf(e.target.files[0]); }); }
+function bindDxfFile(){ const f=$('dxfFile'); if(f) f.addEventListener('change', e=>{ if(e.target.files&&e.target.files.length) loadDxfBatch(e.target.files); }); }
 
 /* ---- 단가 설정 표 ---- */
 function renderRates(){
@@ -1458,7 +1519,7 @@ function dxfInit(){
   dz.addEventListener('click', ()=>$('dxfFile') && $('dxfFile').click());
   ;['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev, e=>{ e.preventDefault(); dz.classList.add('drag'); }));
   ;['dragleave','drop'].forEach(ev=>dz.addEventListener(ev, e=>{ e.preventDefault(); dz.classList.remove('drag'); }));
-  dz.addEventListener('drop', e=>{ const f=e.dataTransfer.files[0]; if(f) loadDxf(f); });
+  dz.addEventListener('drop', e=>{ if(e.dataTransfer.files&&e.dataTransfer.files.length) loadDxfBatch(e.dataTransfer.files); });
   bindDxfFile();
   // 지표/조건 변경 → 재계산
   ['mCut','mPierce','mW','mH','mBend','mQty','dxfThk','dxfWeld'].forEach(id=>$(id).addEventListener('input', renderBreak));
